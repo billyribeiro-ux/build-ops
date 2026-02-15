@@ -15,18 +15,18 @@
     { key: 'review', label: 'Ready for Review', icon: '✅' },
   ];
   
-  const currentStepIndex = $derived(() => {
+  const currentStepIndex = $derived.by(() => {
     const idx = statusSteps.findIndex(s => s.key === job.status);
     return idx >= 0 ? idx : 0;
   });
   
-  const progress = $derived(() => {
+  const progress = $derived.by(() => {
     if (job.status === 'completed') return 100;
     if (job.status === 'failed') return 0;
-    return ((currentStepIndex() + 1) / statusSteps.length) * 100;
+    return ((currentStepIndex + 1) / statusSteps.length) * 100;
   });
   
-  const sourceFiles = $derived(() => {
+  const sourceFiles = $derived.by(() => {
     try {
       return JSON.parse(job.source_files_json);
     } catch {
@@ -50,15 +50,15 @@
   </div>
   
   <div class="progress-bar">
-    <div class="progress-fill" style="width: {progress()}%"></div>
+    <div class="progress-fill" style="width: {progress}%"></div>
   </div>
   
   <div class="steps">
-    {#each statusSteps as step, i}
+    {#each statusSteps as step, i (step.key)}
       <div 
         class="step" 
-        class:active={i === currentStepIndex()}
-        class:completed={i < currentStepIndex() || job.status === 'completed'}
+        class:active={i === currentStepIndex}
+        class:completed={i < currentStepIndex || job.status === 'completed'}
       >
         <div class="step-icon">{step.icon}</div>
         <div class="step-label">{step.label}</div>
@@ -69,7 +69,7 @@
   <div class="stats">
     <div class="stat">
       <span class="stat-label">Files</span>
-      <span class="stat-value">{sourceFiles.length}</span>
+      <span class="stat-value">{sourceFiles?.length ?? 0}</span>
     </div>
     <div class="stat">
       <span class="stat-label">Pages</span>

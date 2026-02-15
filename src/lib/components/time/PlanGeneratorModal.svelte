@@ -119,7 +119,7 @@
 						</div>
 
 						<div class="space-y-2">
-							{#each generatedPlan.sessions as session}
+							{#each generatedPlan.sessions as session, i (i)}
 								<div class="rounded-lg border border-gray-700 bg-gray-800 p-4">
 									<div class="flex items-start justify-between">
 										<div class="flex-1">

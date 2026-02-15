@@ -2,7 +2,9 @@
   "$schema": "https://tauri.app/schema/capability.json",
   "identifier": "default",
   "description": "Default permissions for BuildOps 40",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "shell:allow-open",
@@ -18,7 +20,7 @@
     "notification:allow-notify",
     "os:allow-platform",
     "os:allow-version",
-    "clipboard-manager:allow-read",
-    "clipboard-manager:allow-write"
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text"
   ]
 }

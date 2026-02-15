@@ -30,7 +30,7 @@ pub async fn start_import(
     fs::create_dir_all(&import_dir).map_err(|e| format!("Failed to create import dir: {}", e))?;
 
     let mut source_files = Vec::new();
-    for (idx, path) in file_paths.iter().enumerate() {
+    for (_idx, path) in file_paths.iter().enumerate() {
         let source_path = Path::new(path);
         let file_name = source_path
             .file_name()
@@ -345,7 +345,7 @@ pub async fn delete_import_job(
 
 #[tauri::command]
 pub async fn retry_import(
-    app: AppHandle,
+    _app: AppHandle,
     pool: tauri::State<'_, Pool<Sqlite>>,
     job_id: String,
     api_key: String,

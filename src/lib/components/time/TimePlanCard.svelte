@@ -61,7 +61,7 @@
 		<div>
 			<h4 class="mb-2 text-sm font-medium text-gray-400">Suggested Focus Blocks</h4>
 			<div class="space-y-2">
-				{#each focusBlocks as block}
+				{#each focusBlocks as block, i (i)}
 					<div class="flex items-center justify-between rounded-lg bg-gray-900 px-3 py-2">
 						<span class="text-sm capitalize text-white">{block.session_type}</span>
 						<span class="text-sm font-medium text-gray-400">{block.minutes} min</span>

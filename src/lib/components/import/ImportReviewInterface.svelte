@@ -30,7 +30,7 @@
     onSave(editedPlan);
   }
   
-  const daysByModule = $derived(() => {
+  const daysByModule = $derived.by(() => {
     const grouped: Record<number, typeof editedPlan.day_plans> = {};
     editedPlan.day_plans.forEach(day => {
       if (!grouped[day.module_index]) {
@@ -126,7 +126,7 @@
     {:else if selectedTab === 'modules'}
       <div class="section">
         <h2>Modules</h2>
-        {#each editedPlan.modules as module, i}
+        {#each editedPlan.modules as module, i (i)}
           <div class="module-card">
             <button 
               type="button"
@@ -138,7 +138,7 @@
                 <div class="module-color" style="background: {module.color}"></div>
                 <h3>{module.title}</h3>
                 <span class="day-count">
-                  {daysByModule()[i]?.length || 0} days
+                  {daysByModule[i]?.length || 0} days
                 </span>
               </div>
               <span class="expand-btn" aria-hidden="true">
@@ -164,7 +164,7 @@
       <div class="section">
         <h2>Day Plans</h2>
         <div class="days-list">
-          {#each editedPlan.day_plans as day}
+          {#each editedPlan.day_plans as day (day.day_number)}
             <div class="day-card">
               <div class="day-header">
                 <span class="day-number">Day {day.day_number}</span>
@@ -185,7 +185,7 @@
       <div class="section">
         <h2>Validation Warnings</h2>
         <div class="warnings-list">
-          {#each editedPlan.validation_warnings as warning}
+          {#each editedPlan.validation_warnings as warning, wi (wi)}
             <div class="warning-item">
               <span class="warning-icon">⚠️</span>
               <p>{warning}</p>

@@ -23,6 +23,7 @@ pub struct CreateSessionInput {
     pub planned_minutes: i32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionInterruption {
     pub id: String,

@@ -85,7 +85,7 @@
     <div class="selected-files">
       <h4>Selected Files ({selectedFiles.length})</h4>
       <ul>
-        {#each selectedFiles as file, i}
+        {#each selectedFiles as file, i (i)}
           <li>
             <span class="file-name">{file.split('/').pop()}</span>
             <button type="button" class="remove-btn" onclick={() => removeFile(i)}>

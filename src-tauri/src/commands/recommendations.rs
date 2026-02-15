@@ -1,4 +1,4 @@
-use crate::db::models::{TimeRecommendation, CreateRecommendationInput};
+use crate::db::models::TimeRecommendation;
 use sqlx::SqlitePool;
 use tauri::State;
 use uuid::Uuid;

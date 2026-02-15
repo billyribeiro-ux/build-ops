@@ -1,8 +1,8 @@
-use crate::db::models::{DayPlan, UserCapacityProfile, DaySession, PlannedSession, FocusBlock, CreateSessionInput};
+use crate::db::models::{DayPlan, UserCapacityProfile, PlannedSession, FocusBlock, CreateSessionInput};
 use crate::db::models::session::GeneratedPlan;
 use sqlx::SqlitePool;
 use tauri::State;
-use chrono::{DateTime, Utc, Duration, NaiveTime};
+use chrono::{Utc, Duration, NaiveTime};
 
 #[tauri::command]
 pub async fn plan_my_day(

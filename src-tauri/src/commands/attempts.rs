@@ -62,38 +62,49 @@ pub async fn update_attempt(
     input: UpdateAttemptInput,
 ) -> Result<DayAttempt, String> {
     let mut query = String::from("UPDATE day_attempts SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')");
-    let mut params: Vec<Box<dyn sqlx::Encode<'_, sqlx::Sqlite> + Send>> = Vec::new();
-    
+    let mut params: Vec<String> = Vec::new();
+
     if let Some(status) = input.status {
         query.push_str(", status = ?");
         if status == "submitted" {
             query.push_str(", submitted_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), is_draft = 0");
         }
+        params.push(status);
     }
-    
     if let Some(score) = input.score_implementation {
         query.push_str(", score_implementation = ?");
+        params.push(score.to_string());
     }
     if let Some(score) = input.score_code_quality {
         query.push_str(", score_code_quality = ?");
+        params.push(score.to_string());
     }
     if let Some(score) = input.score_accessibility {
         query.push_str(", score_accessibility = ?");
+        params.push(score.to_string());
     }
     if let Some(score) = input.score_performance {
         query.push_str(", score_performance = ?");
+        params.push(score.to_string());
     }
     if let Some(score) = input.score_quiz {
         query.push_str(", score_quiz = ?");
+        params.push(score.to_string());
     }
     if let Some(actual_minutes) = input.actual_minutes {
         query.push_str(", actual_minutes = ?");
+        params.push(actual_minutes.to_string());
     }
-    
+
     query.push_str(" WHERE id = ? RETURNING *");
-    
-    let attempt = sqlx::query_as::<_, DayAttempt>(&query)
-        .bind(&id)
+    params.push(id.clone());
+
+    let mut q = sqlx::query_as::<_, DayAttempt>(&query);
+    for param in &params {
+        q = q.bind(param);
+    }
+
+    let attempt = q
         .fetch_optional(pool.inner())
         .await.map_err(|e| e.to_string())?
         .ok_or_else(|| format!("Attempt {} not found", id))?;

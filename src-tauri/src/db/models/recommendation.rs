@@ -17,6 +17,7 @@ pub struct TimeRecommendation {
     pub dismissed_at: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateRecommendationInput {
     pub recommendation_type: String,
