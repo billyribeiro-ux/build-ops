@@ -5,18 +5,17 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Icon from '@iconify/svelte';
-	import { listPrograms } from '$lib/commands';
-	import type { ProgramSummary } from '$lib/types';
+	import { listPrograms, getStreak } from '$lib/commands';
+	import type { ProgramSummary, StreakInfo } from '$lib/types';
 
 	let programs = $state<ProgramSummary[]>([]);
+	let streak = $state<StreakInfo | null>(null);
 	let isLoading = $state(true);
-	let currentStreak = $state(7);
-	let totalDaysCompleted = $state(42);
-	let averageScore = $state(87);
+	let error = $state<string | null>(null);
 	let activeDays = $state(3);
 
 	onMount(async () => {
-		await loadDashboard();
+		await loadDashboardData();
 	});
 
 	async function loadDashboard() {
@@ -68,16 +67,18 @@
 			<div class="mb-8 grid grid-cols-4 gap-4">
 				<Card>
 					<div class="p-6">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm text-gray-400">Current Streak</p>
-								<p class="mt-1 text-3xl font-bold text-orange-400">{currentStreak}</p>
-								<p class="mt-1 text-xs text-gray-500">days</p>
-							</div>
-							<div class="rounded-full bg-orange-500/10 p-3">
-								<Icon icon="ph:fire-bold" width="24" class="text-orange-500" />
-							</div>
+						<div class="mb-4 flex items-center justify-between">
+							<h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
+							<Icon icon="ph:fire-bold" width="20" class="text-orange-500" />
 						</div>
+						<p class="text-4xl font-bold text-white">{streak?.current_streak ?? 0}</p>
+						<p class="mt-1 text-sm text-gray-400">days in a row</p>
+						{#if streak && streak.freeze_days_remaining > 0}
+							<div class="mt-2 flex items-center gap-1 text-xs text-blue-400">
+								<Icon icon="ph:snowflake-bold" width="12" />
+								<span>{streak.freeze_days_remaining} freezes left</span>
+							</div>
+						{/if}
 					</div>
 				</Card>
 

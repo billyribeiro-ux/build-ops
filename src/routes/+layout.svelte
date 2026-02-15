@@ -25,3 +25,4 @@
 </div>
 
 <ToastContainer />
+<CommandPalette bind:isOpen={showCommandPalette} />
