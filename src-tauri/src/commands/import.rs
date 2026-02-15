@@ -1,12 +1,13 @@
 use crate::db::models::import::{GeneratedPlan, ImportJob, ImportJobSummary, SourceFile};
 use crate::error::AppError;
-use crate::services::{
-    ai_analyzer::{analyze_with_ai, AiConfig},
-    document_chunker::{chunk_document, merge_multi_file_content},
-    import_applier,
-    pdf_extractor::extract_document,
-    plan_generator::generate_plan,
-};
+// Phase 12 - PDF import services
+// use crate::services::{
+//     ai_analyzer::{analyze_with_ai, AiConfig},
+//     document_chunker::{chunk_document, merge_multi_file_content},
+//     import_applier,
+//     pdf_extractor::extract_document,
+//     plan_generator::generate_plan,
+// };
 use sqlx::{Pool, Sqlite};
 use std::fs;
 use std::path::Path;

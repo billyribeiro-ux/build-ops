@@ -1,4 +1,5 @@
 pub mod program;
+pub mod module;
 pub mod day_plan;
 pub mod day_attempt;
 pub mod capacity;
@@ -8,6 +9,7 @@ pub mod metrics;
 pub mod import;
 
 pub use program::*;
+pub use module::*;
 pub use day_plan::*;
 pub use day_attempt::*;
 pub use capacity::*;

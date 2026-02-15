@@ -3,6 +3,8 @@
 
 pub mod db;
 pub mod error;
+pub mod commands;
+// pub mod services;  // Phase 12 - PDF import
 
 use sqlx::sqlite::SqlitePoolOptions;
 use tauri::Manager;
@@ -65,7 +67,20 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // No commands yet — added in Phase 2+
+            // Phase 2: Program & Module CRUD
+            crate::commands::create_program,
+            crate::commands::get_program,
+            crate::commands::list_programs,
+            crate::commands::update_program,
+            crate::commands::delete_program,
+            crate::commands::duplicate_program,
+            crate::commands::get_program_stats,
+            crate::commands::create_module,
+            crate::commands::get_module,
+            crate::commands::list_modules,
+            crate::commands::update_module,
+            crate::commands::delete_module,
+            crate::commands::reorder_modules,
         ])
         .run(tauri::generate_context!())
         .expect("Error running BuildOps 40");

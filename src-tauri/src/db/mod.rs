@@ -1,5 +1,7 @@
 use sqlx::SqlitePool;
 
+pub mod models;
+
 pub async fn run_migrations(pool: &SqlitePool) {
     let migrations_dir = std::path::Path::new("src/db/migrations");
 
