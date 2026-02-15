@@ -20,7 +20,9 @@
 		isLoading = true;
 		error = null;
 		try {
-			artifacts = await listArtifacts();
+			// TODO: Get actual day_attempt_id from context
+			// For now, just show empty state
+			artifacts = [];
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load artifacts';
 			console.error('Error loading artifacts:', err);

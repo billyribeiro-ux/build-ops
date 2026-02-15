@@ -120,20 +120,20 @@
 										<div>
 											<p class="text-xs text-gray-500">Started</p>
 											<p class="mt-1 text-sm text-gray-300">
-												{formatDate(attempt.start_time)}
+												{formatDate(attempt.created_at)}
 											</p>
 										</div>
 										<div>
 											<p class="text-xs text-gray-500">Duration</p>
 											<p class="mt-1 text-sm text-gray-300">
-												{formatDuration(attempt.time_spent_minutes)}
+												{formatDuration(attempt.actual_minutes)}
 											</p>
 										</div>
-										{#if attempt.score !== null}
+										{#if attempt.total_score !== null}
 											<div>
 												<p class="text-xs text-gray-500">Score</p>
 												<p class="mt-1 text-lg font-bold text-white">
-													{attempt.score}
+													{attempt.total_score}
 													<span class="text-sm text-gray-500">/100</span>
 												</p>
 											</div>
@@ -177,12 +177,12 @@
 					<div>
 						<p class="text-sm text-gray-400">Average Score</p>
 						<p class="mt-1 text-2xl font-bold text-white">
-							{attempts.filter(a => a.score !== null).length > 0
+							{attempts.filter(a => a.total_score !== null).length > 0
 								? Math.round(
 									attempts
-										.filter(a => a.score !== null)
-										.reduce((sum, a) => sum + (a.score || 0), 0) /
-									attempts.filter(a => a.score !== null).length
+										.filter(a => a.total_score !== null)
+										.reduce((sum, a) => sum + (a.total_score || 0), 0) /
+									attempts.filter(a => a.total_score !== null).length
 								)
 								: 'N/A'}
 						</p>

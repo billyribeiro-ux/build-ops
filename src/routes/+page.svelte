@@ -29,8 +29,6 @@
 		error = null;
 		try {
 			programs = await listPrograms();
-			longestStreak = Math.max(...programs.map(program => program.longest_streak));
-			currentStreak = Math.max(...programs.map(program => program.current_streak));
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load programs';
 			console.error('Failed to load dashboard:', err);
