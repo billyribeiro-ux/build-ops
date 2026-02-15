@@ -1,25 +1,246 @@
 <script lang="ts">
-  import Icon from '@iconify/svelte';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
+	import Icon from '@iconify/svelte';
+	import { listPrograms } from '$lib/commands';
+	import type { ProgramSummary } from '$lib/types';
+
+	let programs = $state<ProgramSummary[]>([]);
+	let isLoading = $state(true);
+	let currentStreak = $state(7);
+	let totalDaysCompleted = $state(42);
+	let averageScore = $state(87);
+	let activeDays = $state(3);
+
+	onMount(async () => {
+		await loadDashboard();
+	});
+
+	async function loadDashboard() {
+		isLoading = true;
+		try {
+			programs = await listPrograms();
+		} catch (err) {
+			console.error('Failed to load dashboard:', err);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	function getProgressColor(progress: number) {
+		if (progress >= 80) return 'text-green-400';
+		if (progress >= 50) return 'text-blue-400';
+		return 'text-yellow-400';
+	}
+
+	function getScoreColor(score: number) {
+		if (score >= 95) return 'text-purple-400';
+		if (score >= 70) return 'text-green-400';
+		return 'text-yellow-400';
+	}
 </script>
 
-<div class="space-y-6">
-  <div class="flex items-center gap-3">
-    <Icon icon="ph:house-bold" width="28" class="text-accent-primary" />
-    <h1 class="text-2xl font-bold text-text-primary">Dashboard</h1>
-  </div>
+<div class="min-h-screen bg-gray-950 p-6">
+	<div class="mx-auto max-w-7xl">
+		<div class="mb-8 flex items-center justify-between">
+			<div>
+				<h1 class="text-3xl font-bold text-white">Dashboard</h1>
+				<p class="mt-1 text-gray-400">Your learning progress at a glance</p>
+			</div>
+			<div class="flex gap-3">
+				<Button onclick={() => goto('/programs')} icon="ph:folder-bold">
+					Programs
+				</Button>
+				<Button onclick={() => goto('/import')} variant="outline" icon="ph:upload-bold">
+					Import
+				</Button>
+			</div>
+		</div>
 
-  <div class="rounded-xl border border-border-primary bg-bg-secondary p-8 text-center">
-    <Icon icon="ph:rocket-launch-bold" width="48" class="mx-auto mb-4 text-accent-primary" />
-    <h2 class="mb-2 text-xl font-semibold text-text-primary">Welcome to BuildOps 40</h2>
-    <p class="text-text-secondary">
-      Your engineering learning OS is ready. Create your first program to get started.
-    </p>
-    <a
-      href="/programs/new"
-      class="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-primary/90"
-    >
-      <Icon icon="ph:plus-bold" width="16" />
-      Create Program
-    </a>
-  </div>
+		{#if isLoading}
+			<div class="flex h-96 items-center justify-center">
+				<Icon icon="ph:spinner-bold" width="48" class="animate-spin text-blue-500" />
+			</div>
+		{:else}
+			<div class="mb-8 grid grid-cols-4 gap-4">
+				<Card>
+					<div class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm text-gray-400">Current Streak</p>
+								<p class="mt-1 text-3xl font-bold text-orange-400">{currentStreak}</p>
+								<p class="mt-1 text-xs text-gray-500">days</p>
+							</div>
+							<div class="rounded-full bg-orange-500/10 p-3">
+								<Icon icon="ph:fire-bold" width="24" class="text-orange-500" />
+							</div>
+						</div>
+					</div>
+				</Card>
+
+				<Card>
+					<div class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm text-gray-400">Days Completed</p>
+								<p class="mt-1 text-3xl font-bold text-blue-400">{totalDaysCompleted}</p>
+								<p class="mt-1 text-xs text-gray-500">total</p>
+							</div>
+							<div class="rounded-full bg-blue-500/10 p-3">
+								<Icon icon="ph:check-circle-bold" width="24" class="text-blue-500" />
+							</div>
+						</div>
+					</div>
+				</Card>
+
+				<Card>
+					<div class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm text-gray-400">Average Score</p>
+								<p class="mt-1 text-3xl font-bold {getScoreColor(averageScore)}">{averageScore}</p>
+								<p class="mt-1 text-xs text-gray-500">out of 100</p>
+							</div>
+							<div class="rounded-full bg-green-500/10 p-3">
+								<Icon icon="ph:chart-line-up-bold" width="24" class="text-green-500" />
+							</div>
+						</div>
+					</div>
+				</Card>
+
+				<Card>
+					<div class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm text-gray-400">Active Days</p>
+								<p class="mt-1 text-3xl font-bold text-purple-400">{activeDays}</p>
+								<p class="mt-1 text-xs text-gray-500">in progress</p>
+							</div>
+							<div class="rounded-full bg-purple-500/10 p-3">
+								<Icon icon="ph:clock-bold" width="24" class="text-purple-500" />
+							</div>
+						</div>
+					</div>
+				</Card>
+			</div>
+
+			<div class="mb-8 grid grid-cols-3 gap-6">
+				<div class="col-span-2">
+					<Card>
+						<div class="p-6">
+							<h2 class="mb-4 text-lg font-semibold text-white">Active Programs</h2>
+							{#if programs.length === 0}
+								<div class="py-12 text-center">
+									<Icon icon="ph:folder-open-bold" width="48" class="mx-auto text-gray-600" />
+									<p class="mt-3 text-gray-400">No programs yet</p>
+									<Button onclick={() => goto('/programs')} class="mt-4" size="sm">
+										Create Program
+									</Button>
+								</div>
+							{:else}
+								<div class="space-y-3">
+									{#each programs as program (program.id)}
+										<button
+											onclick={() => goto(`/programs/${program.id}`)}
+											class="w-full rounded-lg border border-gray-700 bg-gray-800 p-4 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
+										>
+											<div class="flex items-start justify-between">
+												<div class="flex-1">
+													<h3 class="font-semibold text-white">{program.title}</h3>
+													<div class="mt-2 flex items-center gap-3">
+														<Badge variant="info">{program.days_count} days</Badge>
+														<Badge variant="success">{program.completed_days} completed</Badge>
+														<span class="text-sm text-gray-400">
+															{program.days_count > 0 ? Math.round((program.completed_days / program.days_count) * 100) : 0}% complete
+														</span>
+													</div>
+												</div>
+												<Icon icon="ph:arrow-right-bold" width="20" class="text-gray-400" />
+											</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</Card>
+				</div>
+
+				<div>
+					<Card>
+						<div class="p-6">
+							<h2 class="mb-4 text-lg font-semibold text-white">Quick Actions</h2>
+							<div class="space-y-2">
+								<button
+									onclick={() => goto('/programs')}
+									class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
+								>
+									<Icon icon="ph:folder-bold" width="20" class="text-blue-500" />
+									<span class="text-sm text-white">View Programs</span>
+								</button>
+								<button
+									onclick={() => goto('/analytics')}
+									class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
+								>
+									<Icon icon="ph:chart-bar-bold" width="20" class="text-green-500" />
+									<span class="text-sm text-white">Analytics</span>
+								</button>
+								<button
+									onclick={() => goto('/search')}
+									class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
+								>
+									<Icon icon="ph:magnifying-glass-bold" width="20" class="text-purple-500" />
+									<span class="text-sm text-white">Search</span>
+								</button>
+								<button
+									onclick={() => goto('/settings')}
+									class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
+								>
+									<Icon icon="ph:gear-bold" width="20" class="text-gray-500" />
+									<span class="text-sm text-white">Settings</span>
+								</button>
+							</div>
+						</div>
+					</Card>
+				</div>
+			</div>
+
+			<Card>
+				<div class="p-6">
+					<h2 class="mb-4 text-lg font-semibold text-white">Recent Activity</h2>
+					<div class="space-y-3">
+						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
+							<div class="rounded-full bg-green-500/10 p-2">
+								<Icon icon="ph:check-bold" width="16" class="text-green-500" />
+							</div>
+							<div class="flex-1">
+								<p class="text-sm text-white">Completed Day 15: Advanced React Patterns</p>
+								<p class="text-xs text-gray-400">2 hours ago • Score: 92/100</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
+							<div class="rounded-full bg-blue-500/10 p-2">
+								<Icon icon="ph:play-bold" width="16" class="text-blue-500" />
+							</div>
+							<div class="flex-1">
+								<p class="text-sm text-white">Started Day 16: State Management</p>
+								<p class="text-xs text-gray-400">5 hours ago</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
+							<div class="rounded-full bg-orange-500/10 p-2">
+								<Icon icon="ph:fire-bold" width="16" class="text-orange-500" />
+							</div>
+							<div class="flex-1">
+								<p class="text-sm text-white">7-day streak milestone reached!</p>
+								<p class="text-xs text-gray-400">Yesterday</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</Card>
+		{/if}
+	</div>
 </div>
