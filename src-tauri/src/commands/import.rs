@@ -1,0 +1,381 @@
+use crate::db::models::import::{GeneratedPlan, ImportJob, ImportJobSummary, SourceFile};
+use crate::error::AppError;
+use crate::services::{
+    ai_analyzer::{analyze_with_ai, AiConfig},
+    document_chunker::{chunk_document, merge_multi_file_content},
+    import_applier::apply_import,
+    pdf_extractor::extract_document,
+    plan_generator::generate_plan,
+};
+use sqlx::{Pool, Sqlite};
+use std::fs;
+use std::path::Path;
+use tauri::{AppHandle, Manager};
+use uuid::Uuid;
+
+#[tauri::command]
+pub async fn start_import(
+    app: AppHandle,
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    file_paths: Vec<String>,
+    program_id: Option<String>,
+    api_key: String,
+) -> Result<ImportJob, String> {
+    let job_id = Uuid::new_v4().to_string();
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+    let import_dir = app_data_dir.join("imports").join(&job_id);
+    fs::create_dir_all(&import_dir).map_err(|e| format!("Failed to create import dir: {}", e))?;
+
+    let mut source_files = Vec::new();
+    for (idx, path) in file_paths.iter().enumerate() {
+        let source_path = Path::new(path);
+        let file_name = source_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| "Invalid file name".to_string())?;
+        let dest_path = import_dir.join(file_name);
+
+        fs::copy(source_path, &dest_path)
+            .map_err(|e| format!("Failed to copy file {}: {}", file_name, e))?;
+
+        let metadata = fs::metadata(&dest_path)
+            .map_err(|e| format!("Failed to get file metadata: {}", e))?;
+
+        source_files.push(SourceFile {
+            file_name: file_name.to_string(),
+            file_path: dest_path.to_string_lossy().to_string(),
+            file_size: metadata.len(),
+        });
+    }
+
+    let source_type = if file_paths.len() > 1 {
+        "multi_file"
+    } else {
+        let ext = Path::new(&file_paths[0])
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("");
+        match ext {
+            "pdf" => "pdf",
+            "md" | "markdown" => "markdown",
+            "txt" => "text",
+            _ => "text",
+        }
+    };
+
+    let source_files_json = serde_json::to_string(&source_files).unwrap_or_default();
+
+    sqlx::query(
+        "INSERT INTO import_jobs (id, program_id, status, source_type, source_files_json, started_at) \
+         VALUES (?, ?, 'pending', ?, ?, datetime('now'))",
+    )
+    .bind(&job_id)
+    .bind(&program_id)
+    .bind(source_type)
+    .bind(&source_files_json)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to create import job: {}", e))?;
+
+    let pool_clone = pool.inner().clone();
+    let api_key_clone = api_key.clone();
+
+    tokio::spawn(async move {
+        if let Err(e) = run_import_pipeline(&pool_clone, &job_id, source_files, api_key_clone).await
+        {
+            let _ = fail_job(&pool_clone, &job_id, "pipeline", &e.to_string()).await;
+        }
+    });
+
+    get_import_job(pool, job_id).await
+}
+
+async fn run_import_pipeline(
+    pool: &Pool<Sqlite>,
+    job_id: &str,
+    source_files: Vec<SourceFile>,
+    api_key: String,
+) -> Result<(), AppError> {
+    update_job_status(pool, job_id, "extracting").await?;
+
+    let mut extracted_docs = Vec::new();
+    for file in &source_files {
+        let doc = extract_document(&file.file_path).await?;
+        extracted_docs.push(doc);
+    }
+
+    let merged_doc = if extracted_docs.len() > 1 {
+        merge_multi_file_content(extracted_docs)
+    } else {
+        extracted_docs.into_iter().next().unwrap()
+    };
+
+    let total_pages = merged_doc.total_pages as i64;
+    let extracted_sections_json = serde_json::to_string(&merged_doc.sections).unwrap_or_default();
+
+    sqlx::query(
+        "UPDATE import_jobs SET extracted_text = ?, extracted_sections_json = ?, total_pages = ? WHERE id = ?",
+    )
+    .bind(&merged_doc.raw_text)
+    .bind(&extracted_sections_json)
+    .bind(total_pages)
+    .execute(pool)
+    .await?;
+
+    update_job_status(pool, job_id, "analyzing").await?;
+
+    let chunked = chunk_document(&merged_doc)?;
+    let total_tokens = chunked.total_tokens as i64;
+
+    sqlx::query("UPDATE import_jobs SET total_tokens = ? WHERE id = ?")
+        .bind(total_tokens)
+        .bind(job_id)
+        .execute(pool)
+        .await?;
+
+    let config = AiConfig { api_key };
+    let ai_result = analyze_with_ai(&config, &chunked).await?;
+
+    let ai_analysis_json = serde_json::to_string(&ai_result).unwrap_or_default();
+    sqlx::query("UPDATE import_jobs SET ai_analysis_json = ? WHERE id = ?")
+        .bind(&ai_analysis_json)
+        .bind(job_id)
+        .execute(pool)
+        .await?;
+
+    update_job_status(pool, job_id, "generating").await?;
+
+    let plan = generate_plan(ai_result)?;
+    let total_days = plan.day_plans.len() as i64;
+
+    let generated_plan_json = serde_json::to_string(&plan).unwrap_or_default();
+    sqlx::query(
+        "UPDATE import_jobs SET generated_plan_json = ?, total_days_generated = ? WHERE id = ?",
+    )
+    .bind(&generated_plan_json)
+    .bind(total_days)
+    .bind(job_id)
+    .execute(pool)
+    .await?;
+
+    update_job_status(pool, job_id, "review").await?;
+
+    Ok(())
+}
+
+async fn update_job_status(pool: &Pool<Sqlite>, job_id: &str, status: &str) -> Result<(), AppError> {
+    sqlx::query("UPDATE import_jobs SET status = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(status)
+        .bind(job_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+async fn fail_job(
+    pool: &Pool<Sqlite>,
+    job_id: &str,
+    step: &str,
+    error: &str,
+) -> Result<(), AppError> {
+    sqlx::query(
+        "UPDATE import_jobs SET status = 'failed', error_step = ?, error_message = ?, updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(step)
+    .bind(error)
+    .bind(job_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_import_job(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+) -> Result<ImportJob, String> {
+    let job: ImportJob = sqlx::query_as("SELECT * FROM import_jobs WHERE id = ?")
+        .bind(&job_id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to fetch import job: {}", e))?;
+
+    Ok(job)
+}
+
+#[tauri::command]
+pub async fn get_import_preview(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+) -> Result<GeneratedPlan, String> {
+    let job: ImportJob = sqlx::query_as("SELECT * FROM import_jobs WHERE id = ?")
+        .bind(&job_id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to fetch import job: {}", e))?;
+
+    if job.status != "review" {
+        return Err(format!("Job is not in review status: {}", job.status));
+    }
+
+    let plan_json = if let Some(reviewed) = job.reviewed_plan_json {
+        reviewed
+    } else {
+        job.generated_plan_json
+    };
+
+    let plan: GeneratedPlan = serde_json::from_str(&plan_json)
+        .map_err(|e| format!("Failed to parse generated plan: {}", e))?;
+
+    Ok(plan)
+}
+
+#[tauri::command]
+pub async fn update_import_preview(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+    reviewed_plan_json: String,
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE import_jobs SET reviewed_plan_json = ?, updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(&reviewed_plan_json)
+    .bind(&job_id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to update reviewed plan: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn apply_import(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+) -> Result<crate::db::models::Program, String> {
+    let job: ImportJob = sqlx::query_as("SELECT * FROM import_jobs WHERE id = ?")
+        .bind(&job_id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to fetch import job: {}", e))?;
+
+    if job.status != "review" {
+        return Err(format!("Job is not in review status: {}", job.status));
+    }
+
+    let plan_json = if let Some(reviewed) = job.reviewed_plan_json {
+        reviewed
+    } else {
+        job.generated_plan_json
+    };
+
+    let plan: GeneratedPlan = serde_json::from_str(&plan_json)
+        .map_err(|e| format!("Failed to parse plan: {}", e))?;
+
+    sqlx::query("UPDATE import_jobs SET status = 'applying', updated_at = datetime('now') WHERE id = ?")
+        .bind(&job_id)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to update job status: {}", e))?;
+
+    let program = apply_import(pool.inner(), &plan, job.program_id)
+        .await
+        .map_err(|e| format!("Failed to apply import: {}", e))?;
+
+    sqlx::query(
+        "UPDATE import_jobs SET status = 'completed', program_id = ?, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(&program.id)
+    .bind(&job_id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to mark job completed: {}", e))?;
+
+    Ok(program)
+}
+
+#[tauri::command]
+pub async fn cancel_import(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE import_jobs SET status = 'failed', error_message = 'Cancelled by user', updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(&job_id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to cancel job: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn list_import_jobs(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+) -> Result<Vec<ImportJobSummary>, String> {
+    let jobs: Vec<ImportJobSummary> = sqlx::query_as(
+        "SELECT id, program_id, status, source_type, total_days_generated, created_at \
+         FROM import_jobs ORDER BY created_at DESC LIMIT 50",
+    )
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to list import jobs: {}", e))?;
+
+    Ok(jobs)
+}
+
+#[tauri::command]
+pub async fn delete_import_job(
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+) -> Result<(), String> {
+    sqlx::query("DELETE FROM import_jobs WHERE id = ?")
+        .bind(&job_id)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to delete import job: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn retry_import(
+    app: AppHandle,
+    pool: tauri::State<'_, Pool<Sqlite>>,
+    job_id: String,
+    api_key: String,
+) -> Result<ImportJob, String> {
+    let job: ImportJob = sqlx::query_as("SELECT * FROM import_jobs WHERE id = ?")
+        .bind(&job_id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| format!("Failed to fetch import job: {}", e))?;
+
+    if job.status != "failed" {
+        return Err("Can only retry failed jobs".to_string());
+    }
+
+    let source_files: Vec<SourceFile> = serde_json::from_str(&job.source_files_json)
+        .map_err(|e| format!("Failed to parse source files: {}", e))?;
+
+    sqlx::query(
+        "UPDATE import_jobs SET status = 'pending', error_message = NULL, error_step = NULL, started_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+    )
+    .bind(&job_id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to reset job: {}", e))?;
+
+    let pool_clone = pool.inner().clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_import_pipeline(&pool_clone, &job_id, source_files, api_key).await {
+            let _ = fail_job(&pool_clone, &job_id, "pipeline", &e.to_string()).await;
+        }
+    });
+
+    get_import_job(pool, job_id).await
+}

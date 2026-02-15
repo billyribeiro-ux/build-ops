@@ -6,6 +6,7 @@ pub mod sessions;
 pub mod time_planning;
 pub mod recommendations;
 pub mod analytics;
+pub mod import;
 
 pub use programs::*;
 pub use day_plans::*;
@@ -15,3 +16,4 @@ pub use sessions::*;
 pub use time_planning::*;
 pub use recommendations::*;
 pub use analytics::*;
+pub use import::*;

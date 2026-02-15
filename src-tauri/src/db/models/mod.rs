@@ -5,6 +5,7 @@ pub mod capacity;
 pub mod session;
 pub mod recommendation;
 pub mod metrics;
+pub mod import;
 
 pub use program::*;
 pub use day_plan::*;
@@ -13,3 +14,4 @@ pub use capacity::*;
 pub use session::*;
 pub use recommendation::*;
 pub use metrics::*;
+pub use import::*;

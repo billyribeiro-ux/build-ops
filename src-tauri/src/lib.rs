@@ -1,6 +1,7 @@
 mod error;
 mod db;
 mod commands;
+mod services;
 
 use tauri::Manager;
 
@@ -49,6 +50,15 @@ pub fn run() {
             commands::dismiss_recommendation,
             commands::get_time_analytics,
             commands::update_daily_metrics,
+            commands::start_import,
+            commands::get_import_job,
+            commands::get_import_preview,
+            commands::update_import_preview,
+            commands::apply_import,
+            commands::cancel_import,
+            commands::list_import_jobs,
+            commands::delete_import_job,
+            commands::retry_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

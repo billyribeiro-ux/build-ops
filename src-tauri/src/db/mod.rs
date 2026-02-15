@@ -40,6 +40,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<()> {
         include_str!("../migrations/011_create_quizzes.sql"),
         include_str!("../migrations/012_create_artifacts.sql"),
         include_str!("../migrations/013_create_settings.sql"),
+        include_str!("../migrations/020_create_import_jobs.sql"),
     ];
     
     for migration in migrations {
