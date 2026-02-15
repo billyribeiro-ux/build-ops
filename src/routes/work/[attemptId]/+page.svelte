@@ -382,10 +382,11 @@
 							<h2 class="mb-6 text-lg font-semibold text-white">Score Breakdown</h2>
 							<div class="space-y-4">
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="implementation-score" class="block text-sm font-medium text-gray-300">
 										Implementation (0-40 pts)
 									</label>
 									<input
+										id="implementation-score"
 										type="number"
 										bind:value={implementationScore}
 										min="0"
@@ -394,10 +395,11 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="code-quality-score" class="block text-sm font-medium text-gray-300">
 										Code Quality (0-20 pts)
 									</label>
 									<input
+										id="code-quality-score"
 										type="number"
 										bind:value={codeQualityScore}
 										min="0"
@@ -406,10 +408,11 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="accessibility-score" class="block text-sm font-medium text-gray-300">
 										Accessibility (0-15 pts)
 									</label>
 									<input
+										id="accessibility-score"
 										type="number"
 										bind:value={accessibilityScore}
 										min="0"
@@ -418,10 +421,11 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="performance-score" class="block text-sm font-medium text-gray-300">
 										Performance (0-15 pts)
 									</label>
 									<input
+										id="performance-score"
 										type="number"
 										bind:value={performanceScore}
 										min="0"
@@ -430,10 +434,11 @@
 									/>
 								</div>
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="quiz-score" class="block text-sm font-medium text-gray-300">
 										Quiz (0-10 pts)
 									</label>
 									<input
+										id="quiz-score"
 										type="number"
 										bind:value={quizScore}
 										min="0"
@@ -489,20 +494,20 @@
 									<h3 class="mb-3 text-lg font-semibold text-white">Daily Reflection</h3>
 									<div class="space-y-3">
 										<div>
-											<label class="block text-sm font-medium text-gray-300">Daily Summary</label>
-											<textarea bind:value={dailySummary} rows="2" placeholder="What did you accomplish today?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+											<label for="daily-summary" class="block text-sm font-medium text-gray-300">Daily Summary</label>
+											<textarea id="daily-summary" bind:value={dailySummary} rows="2" placeholder="What did you accomplish today?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-300">What Went Well</label>
-											<textarea bind:value={whatWentWell} rows="2" placeholder="Successes and wins..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+											<label for="what-went-well" class="block text-sm font-medium text-gray-300">What Went Well</label>
+											<textarea id="what-went-well" bind:value={whatWentWell} rows="2" placeholder="Successes and wins..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-300">What to Improve</label>
-											<textarea bind:value={whatToImprove} rows="2" placeholder="Areas for improvement..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+											<label for="what-to-improve" class="block text-sm font-medium text-gray-300">What to Improve</label>
+											<textarea id="what-to-improve" bind:value={whatToImprove} rows="2" placeholder="Areas for improvement..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-300">Key Learnings</label>
-											<textarea bind:value={keyLearnings} rows="2" placeholder="What did you learn?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+											<label for="key-learnings" class="block text-sm font-medium text-gray-300">Key Learnings</label>
+											<textarea id="key-learnings" bind:value={keyLearnings} rows="2" placeholder="What did you learn?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
 										</div>
 									</div>
 								</div>

@@ -268,6 +268,7 @@
 									</div>
 									<button
 										onclick={() => autoBackup = !autoBackup}
+										aria-label="Toggle auto backup"
 										class="relative h-6 w-11 rounded-full transition-colors {autoBackup ? 'bg-blue-500' : 'bg-gray-700'}"
 									>
 										<span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform {autoBackup ? 'translate-x-5' : ''}"></span>
