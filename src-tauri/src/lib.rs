@@ -1,11 +1,16 @@
-mod error;
-mod db;
-mod commands;
-mod services;
+#![deny(clippy::all)]
+#![warn(clippy::pedantic)]
 
+pub mod db;
+pub mod error;
+
+use sqlx::sqlite::SqlitePoolOptions;
 use tauri::Manager;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub struct AppState {
+    pub db: sqlx::SqlitePool,
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -15,51 +20,53 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
-            let handle = app.handle().clone();
-            tauri::async_runtime::block_on(async move {
-                let pool = db::init_db(&handle).await
-                    .expect("Failed to initialize database");
-                app.manage(pool);
+            let app_data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&app_data_dir)?;
+            std::fs::create_dir_all(app_data_dir.join("artifacts"))?;
+
+            let db_path = app_data_dir.join("buildops40.db");
+            let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
+
+            tracing_subscriber::fmt()
+                .with_env_filter("buildops40=debug,sqlx=warn")
+                .init();
+
+            tracing::info!("Database path: {}", db_path.display());
+
+            let pool = tauri::async_runtime::block_on(async {
+                let pool = SqlitePoolOptions::new()
+                    .max_connections(5)
+                    .connect(&db_url)
+                    .await
+                    .expect("Failed to create database pool");
+
+                // Enable WAL mode for better concurrent read performance
+                sqlx::query("PRAGMA journal_mode=WAL")
+                    .execute(&pool)
+                    .await
+                    .expect("Failed to enable WAL mode");
+
+                // Enable foreign keys
+                sqlx::query("PRAGMA foreign_keys=ON")
+                    .execute(&pool)
+                    .await
+                    .expect("Failed to enable foreign keys");
+
+                // Run migrations
+                db::run_migrations(&pool).await;
+
+                pool
             });
+
+            app.manage(AppState { db: pool });
+
+            tracing::info!("BuildOps 40 initialized successfully");
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::create_program,
-            commands::get_program,
-            commands::list_programs,
-            commands::update_program,
-            commands::delete_program,
-            commands::create_day_plan,
-            commands::get_day_plan,
-            commands::list_day_plans,
-            commands::start_attempt,
-            commands::get_attempt,
-            commands::update_attempt,
-            commands::list_attempts,
-            commands::get_capacity_profile,
-            commands::update_capacity_profile,
-            commands::create_session,
-            commands::start_session,
-            commands::pause_session,
-            commands::complete_session,
-            commands::list_sessions,
-            commands::plan_my_day,
-            commands::generate_recommendations,
-            commands::list_recommendations,
-            commands::apply_recommendation,
-            commands::dismiss_recommendation,
-            commands::get_time_analytics,
-            commands::update_daily_metrics,
-            commands::start_import,
-            commands::get_import_job,
-            commands::get_import_preview,
-            commands::update_import_preview,
-            commands::apply_import,
-            commands::cancel_import,
-            commands::list_import_jobs,
-            commands::delete_import_job,
-            commands::retry_import,
+            // No commands yet — added in Phase 2+
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("Error running BuildOps 40");
 }

@@ -1,8 +1,14 @@
 [package]
 name = "buildops40"
 version = "0.1.0"
+description = "BuildOps 40 - Engineering Learning Operating System"
+authors = ["Billy Ribeiro"]
 edition = "2021"
 rust-version = "1.77"
+
+[lib]
+name = "buildops40_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -23,17 +29,11 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 thiserror = "2"
 anyhow = "1"
-argon2 = "0.5"
-jsonwebtoken = "9"
-genpdf = "0.2.0"
-pulldown-cmark = "0.12"
-tantivy = "0.22"
-notify = "7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-pdf-extract = "0.7"
-lopdf = "0.34"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
-tiktoken-rs = "0.6"
-aes-gcm = "0.10"
-base64 = "0.22"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

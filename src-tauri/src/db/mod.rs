@@ -1,110 +1,50 @@
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
-use crate::error::Result;
-use tauri::Manager;
+use sqlx::SqlitePool;
 
-pub mod models;
+pub async fn run_migrations(pool: &SqlitePool) {
+    let migrations_dir = std::path::Path::new("src/db/migrations");
 
-pub async fn init_db(app_handle: &tauri::AppHandle) -> Result<SqlitePool> {
-    let app_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| crate::error::AppError::Internal(format!("Failed to get app dir: {}", e)))?;
-    
-    std::fs::create_dir_all(&app_dir)?;
-    
-    let db_path = app_dir.join("buildops40.db");
-    let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
-    
-    let pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await?;
-    
-    run_migrations(&pool).await?;
-    
-    Ok(pool)
-}
+    if !migrations_dir.exists() {
+        tracing::warn!("Migrations directory not found at {:?}, skipping", migrations_dir);
+        return;
+    }
 
-async fn run_migrations(pool: &SqlitePool) -> Result<()> {
-    sqlx::query(
-        "CREATE TABLE IF NOT EXISTS _schema_migrations (
-            name TEXT PRIMARY KEY,
-            applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-        )",
-    )
-    .execute(pool)
-    .await?;
+    let mut entries: Vec<_> = std::fs::read_dir(migrations_dir)
+        .expect("Failed to read migrations directory")
+        .filter_map(Result::ok)
+        .filter(|e| {
+            e.path()
+                .extension()
+                .map_or(false, |ext| ext == "sql")
+        })
+        .collect();
 
-    let migrations = [
-        ("001_create_programs.sql", include_str!("../../migrations/001_create_programs.sql")),
-        ("002_create_modules.sql", include_str!("../../migrations/002_create_modules.sql")),
-        ("003_create_day_plans.sql", include_str!("../../migrations/003_create_day_plans.sql")),
-        (
-            "004_create_user_capacity_profiles.sql",
-            include_str!("../../migrations/004_create_user_capacity_profiles.sql"),
-        ),
-        ("005_create_day_attempts.sql", include_str!("../../migrations/005_create_day_attempts.sql")),
-        ("006_create_day_sessions.sql", include_str!("../../migrations/006_create_day_sessions.sql")),
-        (
-            "007_create_time_recommendations.sql",
-            include_str!("../../migrations/007_create_time_recommendations.sql"),
-        ),
-        (
-            "008_create_focus_metrics_daily.sql",
-            include_str!("../../migrations/008_create_focus_metrics_daily.sql"),
-        ),
-        (
-            "009_create_session_interruptions.sql",
-            include_str!("../../migrations/009_create_session_interruptions.sql"),
-        ),
-        ("010_create_checklists.sql", include_str!("../../migrations/010_create_checklists.sql")),
-        ("011_create_quizzes.sql", include_str!("../../migrations/011_create_quizzes.sql")),
-        ("012_create_artifacts.sql", include_str!("../../migrations/012_create_artifacts.sql")),
-        ("013_create_settings.sql", include_str!("../../migrations/013_create_settings.sql")),
-        ("020_create_import_jobs.sql", include_str!("../../migrations/020_create_import_jobs.sql")),
-    ];
+    entries.sort_by_key(|e| e.file_name());
 
-    let applied_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _schema_migrations")
-        .fetch_one(pool)
-        .await?;
+    for entry in entries {
+        let sql = std::fs::read_to_string(entry.path())
+            .unwrap_or_else(|_| panic!("Failed to read migration: {:?}", entry.path()));
 
-    // Legacy bootstrap: if schema already exists but migration tracking does not,
-    // mark all migrations as applied to avoid re-running non-idempotent scripts.
-    if applied_count == 0 {
-        let programs_table_exists: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'programs'",
-        )
-        .fetch_one(pool)
-        .await?;
+        tracing::info!("Running migration: {:?}", entry.file_name());
 
-        if programs_table_exists > 0 {
-            for (name, _) in migrations {
-                sqlx::query("INSERT OR IGNORE INTO _schema_migrations (name) VALUES (?)")
-                    .bind(name)
+        // Split by semicolons and execute each statement
+        // (SQLx execute doesn't support multi-statement by default for some drivers)
+        for statement in sql.split(';') {
+            let trimmed = statement.trim();
+            if !trimmed.is_empty() {
+                sqlx::query(trimmed)
                     .execute(pool)
-                    .await?;
+                    .await
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "Migration failed: {:?} — Error: {} — Statement: {}",
+                            entry.file_name(),
+                            e,
+                            &trimmed[..trimmed.len().min(100)]
+                        );
+                    });
             }
-            return Ok(());
         }
     }
 
-    for (name, migration_sql) in migrations {
-        let already_applied: Option<i64> =
-            sqlx::query_scalar("SELECT 1 FROM _schema_migrations WHERE name = ?")
-                .bind(name)
-                .fetch_optional(pool)
-                .await?;
-
-        if already_applied.is_some() {
-            continue;
-        }
-
-        sqlx::raw_sql(migration_sql).execute(pool).await?;
-        sqlx::query("INSERT INTO _schema_migrations (name) VALUES (?)")
-            .bind(name)
-            .execute(pool)
-            .await?;
-    }
-    
-    Ok(())
+    tracing::info!("All migrations completed successfully");
 }
