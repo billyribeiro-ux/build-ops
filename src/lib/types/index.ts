@@ -5,3 +5,4 @@ export * from './capacity';
 export * from './session';
 export * from './recommendation';
 export * from './analytics';
+export * from './import';

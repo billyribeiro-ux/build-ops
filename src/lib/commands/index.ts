@@ -70,3 +70,8 @@ export const analyticsCommands = {
 	getTimeAnalytics: () => invoke<TimeAnalytics>('get_time_analytics'),
 	updateDailyMetrics: (date: string) => invoke<FocusMetricsDaily>('update_daily_metrics', { date })
 };
+
+export const analytics = analyticsCommands;
+
+import * as importCommands from './import';
+export const imports = importCommands;
