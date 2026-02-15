@@ -27,7 +27,7 @@
 		children?: Snippet;
 	} = $props();
 
-	const normalizedSize = size === 'small' ? 'sm' : size === 'medium' ? 'md' : size === 'large' ? 'lg' : size;
+	const normalizedSize = $derived(size === 'small' ? 'sm' : size === 'medium' ? 'md' : size === 'large' ? 'lg' : size);
 
 	const variantClasses: Record<string, string> = {
 		primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',

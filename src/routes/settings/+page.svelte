@@ -144,8 +144,9 @@
 							
 							<div class="space-y-6">
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Theme</label>
+									<label for="theme-select" class="block text-sm font-medium text-gray-300">Theme</label>
 									<select
+										id="theme-select"
 										bind:value={theme}
 										class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 									>
@@ -157,8 +158,9 @@
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Language</label>
+									<label for="language-select" class="block text-sm font-medium text-gray-300">Language</label>
 									<select
+										id="language-select"
 										class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 									>
 										<option value="en">English</option>
@@ -189,30 +191,30 @@
 							
 							<div class="space-y-6">
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Default Daily Minutes</label>
-									<input type="number" bind:value={defaultDailyMinutes} min="15" max="480" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<label for="default-daily-minutes" class="block text-sm font-medium text-gray-300">Default Daily Minutes</label>
+									<input id="default-daily-minutes" type="number" bind:value={defaultDailyMinutes} min="15" max="480" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
 									<p class="mt-1 text-xs text-gray-500">Your typical daily learning capacity in minutes</p>
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Weekly Study Days</label>
-									<input type="number" bind:value={weeklyStudyDays} min="1" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<label for="weekly-study-days" class="block text-sm font-medium text-gray-300">Weekly Study Days</label>
+									<input id="weekly-study-days" type="number" bind:value={weeklyStudyDays} min="1" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
 									<p class="mt-1 text-xs text-gray-500">How many days per week you study</p>
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Preferred Start Time</label>
-									<input type="time" bind:value={preferredStartTime} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<label for="preferred-start-time" class="block text-sm font-medium text-gray-300">Preferred Start Time</label>
+									<input id="preferred-start-time" type="time" bind:value={preferredStartTime} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Max Deep Work Days/Week</label>
-									<input type="number" bind:value={maxDeepDays} min="0" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<label for="max-deep-days" class="block text-sm font-medium text-gray-300">Max Deep Work Days/Week</label>
+									<input id="max-deep-days" type="number" bind:value={maxDeepDays} min="0" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">Break Pattern</label>
-									<select bind:value={breakPattern} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+									<label for="break-pattern" class="block text-sm font-medium text-gray-300">Break Pattern</label>
+									<select id="break-pattern" bind:value={breakPattern} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
 										<option value="25/5">Pomodoro (25/5)</option>
 										<option value="50/10">Long Focus (50/10)</option>
 										<option value="90/20">Deep Work (90/20)</option>
@@ -243,6 +245,7 @@
 									</div>
 									<button
 										onclick={() => enableNotifications = !enableNotifications}
+										aria-label="Toggle notifications"
 										class="relative h-6 w-11 rounded-full transition-colors {enableNotifications ? 'bg-blue-500' : 'bg-gray-700'}"
 									>
 										<span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform {enableNotifications ? 'translate-x-5' : ''}"></span>
@@ -256,6 +259,7 @@
 									</div>
 									<button
 										onclick={() => enableStreakReminders = !enableStreakReminders}
+										aria-label="Toggle streak reminders"
 										class="relative h-6 w-11 rounded-full transition-colors {enableStreakReminders ? 'bg-blue-500' : 'bg-gray-700'}"
 									>
 										<span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform {enableStreakReminders ? 'translate-x-5' : ''}"></span>
@@ -263,10 +267,11 @@
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
+									<label for="reminder-time" class="block text-sm font-medium text-gray-300">
 										Reminder Time
 									</label>
 									<input
+										id="reminder-time"
 										type="time"
 										value="09:00"
 										class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"

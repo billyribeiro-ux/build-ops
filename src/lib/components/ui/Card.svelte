@@ -20,12 +20,13 @@
     large: 'p-8'
   };
 
-  const hoverClass = hover ? 'transition-colors hover:border-border-secondary cursor-pointer' : '';
+  const hoverClass = $derived(hover ? 'transition-colors hover:border-border-secondary cursor-pointer' : '');
 </script>
 
 <div
   class="rounded-xl border border-border-primary bg-bg-secondary {paddingClasses[padding]} {hoverClass} {className}"
   onclick={onclick}
+  onkeydown={(e) => onclick && (e.key === 'Enter' || e.key === ' ') && onclick()}
   role={onclick ? 'button' : undefined}
   tabindex={onclick ? 0 : undefined}
 >
