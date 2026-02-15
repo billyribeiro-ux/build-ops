@@ -15,8 +15,8 @@
 		type = 'button',
 		children
 	}: {
-		variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
-		size?: 'sm' | 'md' | 'lg';
+		variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
+		size?: 'sm' | 'md' | 'lg' | 'small' | 'medium' | 'large';
 		icon?: string;
 		iconRight?: string;
 		disabled?: boolean;
@@ -27,9 +27,12 @@
 		children?: Snippet;
 	} = $props();
 
+	const normalizedSize = size === 'small' ? 'sm' : size === 'medium' ? 'md' : size === 'large' ? 'lg' : size;
+
 	const variantClasses: Record<string, string> = {
 		primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',
 		secondary: 'bg-gray-800 text-gray-200 border border-gray-700 hover:bg-gray-700 focus:ring-gray-500',
+		outline: 'border border-border-primary text-text-primary hover:bg-bg-hover focus:ring-accent-primary',
 		ghost: 'text-gray-400 hover:bg-gray-800 hover:text-gray-200 focus:ring-gray-500',
 		danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
 		success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
@@ -51,19 +54,19 @@
 	class={cn(
 		'inline-flex items-center justify-center rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed',
 		variantClasses[variant],
-		sizeClasses[size],
+		sizeClasses[normalizedSize],
 		className
 	)}
 >
 	{#if loading}
-		<Icon icon="ph:spinner-bold" width={iconSizes[size]} class="animate-spin" />
+		<Icon icon="ph:spinner-bold" width={iconSizes[normalizedSize]} class="animate-spin" />
 	{:else if icon}
-		<Icon {icon} width={iconSizes[size]} />
+		<Icon {icon} width={iconSizes[normalizedSize]} />
 	{/if}
 	{#if children}
 		{@render children()}
 	{/if}
 	{#if iconRight && !loading}
-		<Icon icon={iconRight} width={iconSizes[size]} />
+		<Icon icon={iconRight} width={iconSizes[normalizedSize]} />
 	{/if}
 </button>

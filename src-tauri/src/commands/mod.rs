@@ -1,21 +1,18 @@
 pub mod programs;
 pub mod modules;
-pub mod day_plans;
+pub mod days;
 pub mod attempts;
 pub mod capacity;
 pub mod sessions;
-pub mod time_planning;
-pub mod recommendations;
-pub mod analytics;
-// pub mod import;  // Phase 12 - PDF import
+// Later phases:
+// pub mod time_planning;  // Phase 4
+// pub mod recommendations;  // Phase 5
+// pub mod analytics;  // Phase 6
+// pub mod import;  // Phase 12
 
 pub use programs::*;
 pub use modules::*;
-pub use day_plans::*;
+pub use days::*;
 pub use attempts::*;
 pub use capacity::*;
 pub use sessions::*;
-pub use time_planning::*;
-pub use recommendations::*;
-pub use analytics::*;
-// pub use import::*;  // Phase 12 - PDF import

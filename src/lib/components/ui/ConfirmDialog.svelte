@@ -17,7 +17,7 @@
     message: string;
     confirmText?: string;
     cancelText?: string;
-    variant?: 'danger' | 'warning' | 'primary';
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
     onconfirm: () => void;
     oncancel?: () => void;
   } = $props();

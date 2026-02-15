@@ -2,11 +2,13 @@
   let {
     children,
     variant = 'default',
-    size = 'medium'
+    size = 'medium',
+    class: className = ''
   }: {
     children: any;
     variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
     size?: 'small' | 'medium' | 'large';
+    class?: string;
   } = $props();
 
   const variantClasses = {
@@ -26,7 +28,7 @@
 </script>
 
 <span
-  class="inline-flex items-center gap-1.5 rounded-full font-medium {variantClasses[variant]} {sizeClasses[size]}"
+  class="inline-flex items-center gap-1.5 rounded-full font-medium {variantClasses[variant]} {sizeClasses[size]} {className}"
 >
   {@render children()}
 </span>

@@ -2,6 +2,7 @@
   import '../app.css';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import TopBar from '$lib/components/layout/TopBar.svelte';
+  import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 
   let { children } = $props();
 
@@ -22,3 +23,5 @@
     </main>
   </div>
 </div>
+
+<ToastContainer />
