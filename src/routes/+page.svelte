@@ -5,24 +5,34 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Icon from '@iconify/svelte';
-	import { listPrograms, getStreak } from '$lib/commands';
-	import type { ProgramSummary, StreakInfo } from '$lib/types';
+	import { listPrograms } from '$lib/commands';
+	import type { ProgramSummary } from '$lib/types';
 
 	let programs = $state<ProgramSummary[]>([]);
-	let streak = $state<StreakInfo | null>(null);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
+	
+	let totalDaysCompleted = $derived(programs.reduce((sum, p) => sum + p.completed_days, 0));
+	let averageScore = $derived(
+		programs.length > 0 
+			? Math.round(programs.reduce((sum, p) => sum + (p.latest_score || 0), 0) / programs.length)
+			: 0
+	);
 	let activeDays = $state(3);
 
 	onMount(async () => {
-		await loadDashboardData();
+		await loadDashboard();
 	});
 
 	async function loadDashboard() {
 		isLoading = true;
+		error = null;
 		try {
 			programs = await listPrograms();
+			longestStreak = Math.max(...programs.map(program => program.longest_streak));
+			currentStreak = Math.max(...programs.map(program => program.current_streak));
 		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load programs';
 			console.error('Failed to load dashboard:', err);
 		} finally {
 			isLoading = false;
@@ -71,14 +81,8 @@
 							<h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
 							<Icon icon="ph:fire-bold" width="20" class="text-orange-500" />
 						</div>
-						<p class="text-4xl font-bold text-white">{streak?.current_streak ?? 0}</p>
+						<p class="text-4xl font-bold text-white">0</p>
 						<p class="mt-1 text-sm text-gray-400">days in a row</p>
-						{#if streak && streak.freeze_days_remaining > 0}
-							<div class="mt-2 flex items-center gap-1 text-xs text-blue-400">
-								<Icon icon="ph:snowflake-bold" width="12" />
-								<span>{streak.freeze_days_remaining} freezes left</span>
-							</div>
-						{/if}
 					</div>
 				</Card>
 

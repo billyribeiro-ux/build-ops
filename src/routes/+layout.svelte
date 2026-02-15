@@ -3,11 +3,13 @@
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import TopBar from '$lib/components/layout/TopBar.svelte';
   import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
 
   let { children } = $props();
 
   let sidebarCollapsed = $state(false);
   let sidebarWidth = $derived(sidebarCollapsed ? 48 : 240);
+  let showCommandPalette = $state(false);
 </script>
 
 <div class="flex h-screen bg-bg-primary">
@@ -25,4 +27,4 @@
 </div>
 
 <ToastContainer />
-<CommandPalette bind:isOpen={showCommandPalette} />
+<CommandPalette isOpen={showCommandPalette} onClose={() => showCommandPalette = false} />

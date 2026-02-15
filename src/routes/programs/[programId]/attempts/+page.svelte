@@ -7,9 +7,9 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Icon from '@iconify/svelte';
-	import type { DayAttempt } from '$lib/types';
+	import type { DayAttemptSummary } from '$lib/types';
 
-	let attempts = $state<DayAttempt[]>([]);
+	let attempts = $state<DayAttemptSummary[]>([]);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 
@@ -114,40 +114,26 @@
 										<Badge variant={getStatusColor(attempt.status)}>
 											{attempt.status}
 										</Badge>
-										{#if attempt.is_memory_rebuild}
-											<Badge variant="purple">
-												<Icon icon="ph:brain-bold" width="14" class="mr-1" />
-												Memory Rebuild
-											</Badge>
-										{/if}
 									</div>
 									
-									<div class="mt-3 grid grid-cols-4 gap-4">
+									<div class="mt-3 grid grid-cols-3 gap-4">
 										<div>
 											<p class="text-xs text-gray-500">Started</p>
 											<p class="mt-1 text-sm text-gray-300">
-												{formatDate(attempt.started_at)}
+												{formatDate(attempt.start_time)}
 											</p>
 										</div>
-										{#if attempt.completed_at}
-											<div>
-												<p class="text-xs text-gray-500">Completed</p>
-												<p class="mt-1 text-sm text-gray-300">
-													{formatDate(attempt.completed_at)}
-												</p>
-											</div>
-										{/if}
 										<div>
 											<p class="text-xs text-gray-500">Duration</p>
 											<p class="mt-1 text-sm text-gray-300">
-												{formatDuration(attempt.total_time_minutes)}
+												{formatDuration(attempt.time_spent_minutes)}
 											</p>
 										</div>
-										{#if attempt.final_score !== null}
+										{#if attempt.score !== null}
 											<div>
 												<p class="text-xs text-gray-500">Score</p>
 												<p class="mt-1 text-lg font-bold text-white">
-													{attempt.final_score}
+													{attempt.score}
 													<span class="text-sm text-gray-500">/100</span>
 												</p>
 											</div>
@@ -191,12 +177,12 @@
 					<div>
 						<p class="text-sm text-gray-400">Average Score</p>
 						<p class="mt-1 text-2xl font-bold text-white">
-							{attempts.filter(a => a.final_score !== null).length > 0
+							{attempts.filter(a => a.score !== null).length > 0
 								? Math.round(
 									attempts
-										.filter(a => a.final_score !== null)
-										.reduce((sum, a) => sum + (a.final_score || 0), 0) /
-									attempts.filter(a => a.final_score !== null).length
+										.filter(a => a.score !== null)
+										.reduce((sum, a) => sum + (a.score || 0), 0) /
+									attempts.filter(a => a.score !== null).length
 								)
 								: 'N/A'}
 						</p>
