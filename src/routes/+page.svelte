@@ -5,20 +5,32 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Icon from '@iconify/svelte';
-	import { listPrograms } from '$lib/commands';
-	import type { ProgramSummary } from '$lib/types';
+	import { listPrograms, getStreak, getBadges, getDueReviews } from '$lib/commands';
+	import type { ProgramSummary, Streak, DueReview } from '$lib/types';
+	import type { Badge as BadgeType } from '$lib/types/badge';
 
 	let programs = $state<ProgramSummary[]>([]);
+	let streaks = $state<Streak[]>([]);
+	let badges = $state<BadgeType[]>([]);
+	let dueReviews = $state<DueReview[]>([]);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
-	
+
 	let totalDaysCompleted = $derived(programs.reduce((sum, p) => sum + p.completed_days, 0));
 	let averageScore = $derived(
-		programs.length > 0 
+		programs.length > 0
 			? Math.round(programs.reduce((sum, p) => sum + (p.latest_score || 0), 0) / programs.length)
 			: 0
 	);
-	let activeDays = $state(3);
+	let bestStreak = $derived(
+		streaks.length > 0 ? Math.max(...streaks.map((s) => s.current_streak)) : 0
+	);
+	let longestStreak = $derived(
+		streaks.length > 0 ? Math.max(...streaks.map((s) => s.longest_streak)) : 0
+	);
+	let totalFreezes = $derived(
+		streaks.length > 0 ? streaks.reduce((sum, s) => sum + s.freezes_available, 0) : 0
+	);
 
 	onMount(async () => {
 		await loadDashboard();
@@ -29,18 +41,24 @@
 		error = null;
 		try {
 			programs = await listPrograms();
+			const streakResults = await Promise.all(
+				programs.map((p) => getStreak(p.id).catch(() => null))
+			);
+			streaks = streakResults.filter((s): s is Streak => s !== null);
+			const badgeResults = await Promise.all(
+				programs.map((p) => getBadges(p.id).catch(() => []))
+			);
+			badges = badgeResults.flat();
+			const reviewResults = await Promise.all(
+				programs.map((p) => getDueReviews(p.id).catch(() => []))
+			);
+			dueReviews = reviewResults.flat();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load programs';
 			console.error('Failed to load dashboard:', err);
 		} finally {
 			isLoading = false;
 		}
-	}
-
-	function getProgressColor(progress: number) {
-		if (progress >= 80) return 'text-green-400';
-		if (progress >= 50) return 'text-blue-400';
-		return 'text-yellow-400';
 	}
 
 	function getScoreColor(score: number) {
@@ -75,57 +93,53 @@
 			<div class="mb-8 grid grid-cols-4 gap-4">
 				<Card>
 					<div class="p-6">
-						<div class="mb-4 flex items-center justify-between">
+						<div class="mb-2 flex items-center justify-between">
 							<h3 class="text-sm font-medium text-gray-400">Current Streak</h3>
 							<Icon icon="ph:fire-bold" width="20" class="text-orange-500" />
 						</div>
-						<p class="text-4xl font-bold text-white">0</p>
+						<p class="text-4xl font-bold text-white">{bestStreak}</p>
 						<p class="mt-1 text-sm text-gray-400">days in a row</p>
-					</div>
-				</Card>
-
-				<Card>
-					<div class="p-6">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm text-gray-400">Days Completed</p>
-								<p class="mt-1 text-3xl font-bold text-blue-400">{totalDaysCompleted}</p>
-								<p class="mt-1 text-xs text-gray-500">total</p>
-							</div>
-							<div class="rounded-full bg-blue-500/10 p-3">
-								<Icon icon="ph:check-circle-bold" width="24" class="text-blue-500" />
-							</div>
+						<div class="mt-2 flex items-center gap-3 text-xs text-gray-500">
+							<span>Best: {longestStreak}</span>
+							{#if totalFreezes > 0}
+								<span class="flex items-center gap-1 text-blue-400">
+									<Icon icon="ph:snowflake-bold" width="12" />{totalFreezes} freezes
+								</span>
+							{/if}
 						</div>
 					</div>
 				</Card>
 
 				<Card>
 					<div class="p-6">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm text-gray-400">Average Score</p>
-								<p class="mt-1 text-3xl font-bold {getScoreColor(averageScore)}">{averageScore}</p>
-								<p class="mt-1 text-xs text-gray-500">out of 100</p>
-							</div>
-							<div class="rounded-full bg-green-500/10 p-3">
-								<Icon icon="ph:chart-line-up-bold" width="24" class="text-green-500" />
-							</div>
+						<div class="mb-2 flex items-center justify-between">
+							<h3 class="text-sm font-medium text-gray-400">Days Completed</h3>
+							<Icon icon="ph:check-circle-bold" width="20" class="text-blue-500" />
 						</div>
+						<p class="text-4xl font-bold text-blue-400">{totalDaysCompleted}</p>
+						<p class="mt-1 text-sm text-gray-400">across {programs.length} programs</p>
 					</div>
 				</Card>
 
 				<Card>
 					<div class="p-6">
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-sm text-gray-400">Active Days</p>
-								<p class="mt-1 text-3xl font-bold text-purple-400">{activeDays}</p>
-								<p class="mt-1 text-xs text-gray-500">in progress</p>
-							</div>
-							<div class="rounded-full bg-purple-500/10 p-3">
-								<Icon icon="ph:clock-bold" width="24" class="text-purple-500" />
-							</div>
+						<div class="mb-2 flex items-center justify-between">
+							<h3 class="text-sm font-medium text-gray-400">Average Score</h3>
+							<Icon icon="ph:chart-line-up-bold" width="20" class="text-green-500" />
 						</div>
+						<p class="text-4xl font-bold {getScoreColor(averageScore)}">{averageScore}</p>
+						<p class="mt-1 text-sm text-gray-400">out of 100</p>
+					</div>
+				</Card>
+
+				<Card>
+					<div class="p-6">
+						<div class="mb-2 flex items-center justify-between">
+							<h3 class="text-sm font-medium text-gray-400">Badges Earned</h3>
+							<Icon icon="ph:medal-bold" width="20" class="text-yellow-500" />
+						</div>
+						<p class="text-4xl font-bold text-yellow-400">{badges.length}</p>
+						<p class="mt-1 text-sm text-gray-400">achievements unlocked</p>
 					</div>
 				</Card>
 			</div>
@@ -210,40 +224,49 @@
 				</div>
 			</div>
 
-			<Card>
-				<div class="p-6">
-					<h2 class="mb-4 text-lg font-semibold text-white">Recent Activity</h2>
-					<div class="space-y-3">
-						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
-							<div class="rounded-full bg-green-500/10 p-2">
-								<Icon icon="ph:check-bold" width="16" class="text-green-500" />
-							</div>
-							<div class="flex-1">
-								<p class="text-sm text-white">Completed Day 15: Advanced React Patterns</p>
-								<p class="text-xs text-gray-400">2 hours ago • Score: 92/100</p>
-							</div>
+			{#if dueReviews.length > 0}
+				<Card class="mb-8">
+					<div class="p-6">
+						<div class="mb-4 flex items-center justify-between">
+							<h2 class="text-lg font-semibold text-white">Due for Review</h2>
+							<Badge variant="warning">{dueReviews.length} due</Badge>
 						</div>
-						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
-							<div class="rounded-full bg-blue-500/10 p-2">
-								<Icon icon="ph:play-bold" width="16" class="text-blue-500" />
-							</div>
-							<div class="flex-1">
-								<p class="text-sm text-white">Started Day 16: State Management</p>
-								<p class="text-xs text-gray-400">5 hours ago</p>
-							</div>
-						</div>
-						<div class="flex items-center gap-4 rounded-lg border border-gray-700 bg-gray-800 p-3">
-							<div class="rounded-full bg-orange-500/10 p-2">
-								<Icon icon="ph:fire-bold" width="16" class="text-orange-500" />
-							</div>
-							<div class="flex-1">
-								<p class="text-sm text-white">7-day streak milestone reached!</p>
-								<p class="text-xs text-gray-400">Yesterday</p>
-							</div>
+						<div class="space-y-2">
+							{#each dueReviews.slice(0, 5) as review (review.id)}
+								<div class="flex items-center justify-between rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
+									<div class="flex items-center gap-3">
+										<Icon icon="ph:brain-bold" width="20" class="text-yellow-500" />
+										<div>
+											<p class="text-sm font-medium text-white">Day {review.day_number}: {review.day_title}</p>
+											<p class="text-xs text-gray-400">{review.concept_name} • Due: {new Date(review.next_review_date).toLocaleDateString()}</p>
+										</div>
+									</div>
+									<Badge variant="warning">Review</Badge>
+								</div>
+							{/each}
 						</div>
 					</div>
-				</div>
-			</Card>
+				</Card>
+			{/if}
+
+			{#if badges.length > 0}
+				<Card class="mb-8">
+					<div class="p-6">
+						<h2 class="mb-4 text-lg font-semibold text-white">Badges Earned</h2>
+						<div class="flex flex-wrap gap-3">
+							{#each badges as badge (badge.id)}
+								<div class="flex items-center gap-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
+									<Icon icon="ph:medal-bold" width="20" class="text-yellow-500" />
+									<div>
+										<p class="text-sm font-medium text-white">{badge.title}</p>
+										<p class="text-xs text-gray-400">{badge.description}</p>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</Card>
+			{/if}
 		{/if}
 	</div>
 </div>

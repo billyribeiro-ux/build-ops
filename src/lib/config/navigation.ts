@@ -9,8 +9,10 @@ export const mainNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: 'ph:house-bold', shortcut: '⌘1' },
   { label: 'Programs', href: '/programs', icon: 'ph:books-bold', shortcut: '⌘2' },
   { label: 'Analytics', href: '/analytics', icon: 'ph:chart-line-bold', shortcut: '⌘3' },
-  { label: 'Search', href: '/search', icon: 'ph:magnifying-glass-bold', shortcut: '⌘4' },
-  { label: 'Export', href: '/export', icon: 'ph:export-bold', shortcut: '⌘5' },
+  { label: 'Reviews', href: '/reviews', icon: 'ph:calendar-check-bold', shortcut: '⌘4' },
+  { label: 'Evidence', href: '/evidence', icon: 'ph:archive-bold', shortcut: '⌘5' },
+  { label: 'Search', href: '/search', icon: 'ph:magnifying-glass-bold', shortcut: '⌘K' },
+  { label: 'Export', href: '/export', icon: 'ph:export-bold' },
 ];
 
 export const bottomNavItems: NavItem[] = [

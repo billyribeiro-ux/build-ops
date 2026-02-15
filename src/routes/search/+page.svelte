@@ -1,20 +1,53 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Icon from '@iconify/svelte';
+	import { listPrograms, listDayPlans, listAttempts } from '$lib/commands';
+	import type { ProgramSummary, DayPlanSummary, DayAttemptSummary } from '$lib/types';
+
+	interface SearchResult {
+		id: string;
+		title: string;
+		description: string;
+		category: 'program' | 'day' | 'attempt';
+		date: string;
+		url: string;
+	}
 
 	let searchQuery = $state('');
-	let searchResults = $state<any[]>([]);
+	let searchResults = $state<SearchResult[]>([]);
 	let isSearching = $state(false);
 	let selectedCategory = $state<'all' | 'programs' | 'days' | 'attempts'>('all');
 
+	let allPrograms = $state<ProgramSummary[]>([]);
+	let allDays = $state<DayPlanSummary[]>([]);
+	let allAttempts = $state<DayAttemptSummary[]>([]);
+	let dataLoaded = $state(false);
+
 	onMount(() => {
 		document.addEventListener('keydown', handleKeyDown);
-		return () => {
-			document.removeEventListener('keydown', handleKeyDown);
-		};
+		loadSearchData();
+		return () => document.removeEventListener('keydown', handleKeyDown);
 	});
+
+	async function loadSearchData() {
+		try {
+			allPrograms = await listPrograms();
+			const dayResults = await Promise.all(
+				allPrograms.map((p) => listDayPlans(p.id).catch(() => []))
+			);
+			allDays = dayResults.flat();
+			const attemptResults = await Promise.all(
+				allPrograms.map((p) => listAttempts(p.id).catch(() => []))
+			);
+			allAttempts = attemptResults.flat();
+			dataLoaded = true;
+		} catch (err) {
+			console.error('Failed to load search data:', err);
+		}
+	}
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -24,22 +57,63 @@
 		}
 	}
 
-	async function handleSearch() {
+	function handleSearch() {
 		if (!searchQuery.trim()) {
 			searchResults = [];
 			return;
 		}
 
 		isSearching = true;
-		try {
-			// TODO: Implement actual search when backend is ready
-			await new Promise(resolve => setTimeout(resolve, 300));
-			searchResults = [];
-		} catch (err) {
-			console.error('Search failed:', err);
-		} finally {
-			isSearching = false;
+		const q = searchQuery.toLowerCase();
+		const results: SearchResult[] = [];
+
+		if (selectedCategory === 'all' || selectedCategory === 'programs') {
+			for (const p of allPrograms) {
+				if (p.title.toLowerCase().includes(q)) {
+					results.push({
+						id: p.id,
+						title: p.title,
+						description: `${p.days_count} days, ${p.completed_days} completed`,
+						category: 'program',
+						date: '',
+						url: `/programs/${p.id}`
+					});
+				}
+			}
 		}
+
+		if (selectedCategory === 'all' || selectedCategory === 'days') {
+			for (const d of allDays) {
+				if (d.title.toLowerCase().includes(q)) {
+					results.push({
+						id: d.id,
+						title: `Day ${d.day_number}: ${d.title}`,
+						description: `Status: ${d.status}`,
+						category: 'day',
+						date: '',
+						url: `/day/${d.id}`
+					});
+				}
+			}
+		}
+
+		if (selectedCategory === 'all' || selectedCategory === 'attempts') {
+			for (const a of allAttempts) {
+				if (a.day_title.toLowerCase().includes(q)) {
+					results.push({
+						id: a.id,
+						title: `Attempt #${a.attempt_number}: ${a.day_title}`,
+						description: `Score: ${a.total_score}/100 - ${a.status}`,
+						category: 'attempt',
+						date: new Date(a.created_at).toLocaleDateString(),
+						url: `/work/${a.id}`
+					});
+				}
+			}
+		}
+
+		searchResults = results;
+		isSearching = false;
 	}
 
 	function getCategoryIcon(category: string) {
@@ -122,6 +196,7 @@
 					<div class="space-y-2">
 						{#each searchResults as result (result.id)}
 							<button
+								onclick={() => goto(result.url)}
 								class="w-full rounded-lg border border-gray-700 bg-gray-800 p-4 text-left transition-colors hover:border-gray-600 hover:bg-gray-750"
 							>
 								<div class="flex items-start gap-3">
@@ -131,7 +206,9 @@
 										<p class="mt-1 text-sm text-gray-400">{result.description}</p>
 										<div class="mt-2 flex items-center gap-2">
 											<Badge variant="info">{result.category}</Badge>
-											<span class="text-xs text-gray-500">{result.date}</span>
+											{#if result.date}
+												<span class="text-xs text-gray-500">{result.date}</span>
+											{/if}
 										</div>
 									</div>
 								</div>
@@ -153,21 +230,21 @@
 				<div class="p-6">
 					<h2 class="mb-4 text-lg font-semibold text-white">Quick Commands</h2>
 					<div class="space-y-2">
-						<button class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
+						<button onclick={() => goto('/programs/new')} class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
 							<Icon icon="ph:plus-bold" width="20" class="text-blue-500" />
 							<div class="flex-1">
 								<p class="text-sm font-medium text-white">Create new program</p>
 								<p class="text-xs text-gray-400">Start a new learning curriculum</p>
 							</div>
 						</button>
-						<button class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
+						<button onclick={() => goto('/import')} class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
 							<Icon icon="ph:upload-bold" width="20" class="text-green-500" />
 							<div class="flex-1">
 								<p class="text-sm font-medium text-white">Import content</p>
 								<p class="text-xs text-gray-400">Upload PDFs or documents</p>
 							</div>
 						</button>
-						<button class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
+						<button onclick={() => goto('/analytics')} class="flex w-full items-center gap-3 rounded-lg border border-gray-700 bg-gray-800 p-3 text-left transition-colors hover:border-gray-600 hover:bg-gray-750">
 							<Icon icon="ph:chart-bar-bold" width="20" class="text-purple-500" />
 							<div class="flex-1">
 								<p class="text-sm font-medium text-white">View analytics</p>

@@ -1,27 +1,71 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Icon from '@iconify/svelte';
+	import { getCapacityProfile, updateCapacityProfile } from '$lib/commands';
+	import type { UserCapacityProfile } from '$lib/types';
 
 	let activeSection = $state<'general' | 'capacity' | 'notifications' | 'data'>('general');
 	let theme = $state('dark');
 	let defaultDailyMinutes = $state(60);
+	let weeklyStudyDays = $state(5);
+	let preferredStartTime = $state('09:00');
+	let maxDeepDays = $state(3);
+	let breakPattern = $state('25/5');
 	let enableNotifications = $state(true);
 	let enableStreakReminders = $state(true);
 	let autoBackup = $state(true);
+	let isSaving = $state(false);
+	let saveMessage = $state('');
+
+	onMount(async () => {
+		try {
+			const profile = await getCapacityProfile();
+			defaultDailyMinutes = profile.default_daily_minutes;
+			weeklyStudyDays = profile.weekly_study_days;
+			preferredStartTime = profile.preferred_start_time;
+			maxDeepDays = profile.max_deep_days_per_week;
+			breakPattern = profile.break_pattern;
+		} catch {
+			console.log('No capacity profile found, using defaults');
+		}
+	});
+
+	async function saveCapacity() {
+		isSaving = true;
+		saveMessage = '';
+		try {
+			await updateCapacityProfile({
+				default_daily_minutes: defaultDailyMinutes,
+				weekly_study_days: weeklyStudyDays,
+				preferred_start_time: preferredStartTime,
+				max_deep_days_per_week: maxDeepDays,
+				break_pattern: breakPattern
+			});
+			saveMessage = 'Settings saved!';
+			setTimeout(() => saveMessage = '', 2000);
+		} catch (err) {
+			saveMessage = 'Failed to save';
+			console.error('Save failed:', err);
+		} finally {
+			isSaving = false;
+		}
+	}
 
 	function handleExportData() {
-		alert('Export functionality will be implemented');
+		goto('/export');
 	}
 
 	function handleImportData() {
-		alert('Import functionality will be implemented');
+		goto('/import');
 	}
 
 	function handleClearData() {
 		if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-			alert('Clear data functionality will be implemented');
+			alert('Clear data requires manual database deletion');
 		}
 	}
 </script>
@@ -124,39 +168,43 @@
 							
 							<div class="space-y-6">
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
-										Default Daily Minutes
-									</label>
-									<input
-										type="number"
-										bind:value={defaultDailyMinutes}
-										min="15"
-										max="480"
-										class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-									/>
-									<p class="mt-1 text-xs text-gray-500">
-										Your typical daily learning capacity in minutes
-									</p>
+									<label class="block text-sm font-medium text-gray-300">Default Daily Minutes</label>
+									<input type="number" bind:value={defaultDailyMinutes} min="15" max="480" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<p class="mt-1 text-xs text-gray-500">Your typical daily learning capacity in minutes</p>
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-300">
-										Weekly Schedule
-									</label>
-									<div class="mt-2 space-y-2">
-										{#each ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as day}
-											<div class="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800 p-3">
-												<span class="text-sm text-white">{day}</span>
-												<input
-													type="number"
-													value="60"
-													min="0"
-													max="480"
-													class="w-24 rounded border border-gray-600 bg-gray-700 px-2 py-1 text-sm text-white focus:border-blue-500 focus:outline-none"
-												/>
-											</div>
-										{/each}
-									</div>
+									<label class="block text-sm font-medium text-gray-300">Weekly Study Days</label>
+									<input type="number" bind:value={weeklyStudyDays} min="1" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+									<p class="mt-1 text-xs text-gray-500">How many days per week you study</p>
+								</div>
+
+								<div>
+									<label class="block text-sm font-medium text-gray-300">Preferred Start Time</label>
+									<input type="time" bind:value={preferredStartTime} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+								</div>
+
+								<div>
+									<label class="block text-sm font-medium text-gray-300">Max Deep Work Days/Week</label>
+									<input type="number" bind:value={maxDeepDays} min="0" max="7" class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+								</div>
+
+								<div>
+									<label class="block text-sm font-medium text-gray-300">Break Pattern</label>
+									<select bind:value={breakPattern} class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+										<option value="25/5">Pomodoro (25/5)</option>
+										<option value="50/10">Long Focus (50/10)</option>
+										<option value="90/20">Deep Work (90/20)</option>
+									</select>
+								</div>
+
+								<div class="flex items-center gap-3 border-t border-gray-700 pt-6">
+									<Button onclick={saveCapacity} icon="ph:floppy-disk-bold" disabled={isSaving}>
+										{isSaving ? 'Saving...' : 'Save Settings'}
+									</Button>
+									{#if saveMessage}
+										<span class="text-sm {saveMessage === 'Settings saved!' ? 'text-green-400' : 'text-red-400'}">{saveMessage}</span>
+									{/if}
 								</div>
 							</div>
 						</div>

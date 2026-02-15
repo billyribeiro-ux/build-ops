@@ -27,4 +27,4 @@
 </div>
 
 <ToastContainer />
-<CommandPalette isOpen={showCommandPalette} onClose={() => showCommandPalette = false} />
+<CommandPalette bind:isOpen={showCommandPalette} />

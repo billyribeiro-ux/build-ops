@@ -43,15 +43,44 @@
 	let performanceScore = $state(0);
 	let quizScore = $state(0);
 
+	let dailySummary = $state('');
+	let whatWentWell = $state('');
+	let whatToImprove = $state('');
+	let keyLearnings = $state('');
+	let memoryRebuildPassed = $state(false);
+	let memoryRebuildNotes = $state('');
+	let memoryRebuildTimerSeconds = $state(0);
+	let memoryRebuildActive = $state(false);
+	let memoryTimerInterval: number | null = null;
+
+	function startMemoryRebuildTimer() {
+		memoryRebuildActive = true;
+		memoryRebuildTimerSeconds = 0;
+		memoryTimerInterval = setInterval(() => {
+			memoryRebuildTimerSeconds++;
+		}, 1000) as unknown as number;
+	}
+
+	function stopMemoryRebuildTimer() {
+		memoryRebuildActive = false;
+		if (memoryTimerInterval) {
+			clearInterval(memoryTimerInterval);
+			memoryTimerInterval = null;
+		}
+	}
+
+	let memoryTimerDisplay = $derived(
+		`${Math.floor(memoryRebuildTimerSeconds / 60).toString().padStart(2, '0')}:${(memoryRebuildTimerSeconds % 60).toString().padStart(2, '0')}`
+	);
+
 	onMount(async () => {
 		await loadAttempt();
 		startAutosave();
 	});
 
 	onDestroy(() => {
-		if (autosaveInterval) {
-			clearInterval(autosaveInterval);
-		}
+		if (autosaveInterval) clearInterval(autosaveInterval);
+		if (memoryTimerInterval) clearInterval(memoryTimerInterval);
 	});
 
 	async function loadAttempt() {
@@ -85,7 +114,7 @@
 					console.error('Autosave failed:', err);
 				}
 			}
-		}, 30000) as unknown as number;
+		}, 5000) as unknown as number;
 	}
 
 	async function handleSubmit() {
@@ -97,12 +126,12 @@
 			score_accessibility: accessibilityScore,
 			score_performance: performanceScore,
 			score_quiz: quizScore,
-			daily_summary: '',
-			what_went_well: '',
-			what_to_improve: '',
-			key_learnings: '',
-			memory_rebuild_passed: false,
-			memory_rebuild_notes: ''
+			daily_summary: dailySummary,
+			what_went_well: whatWentWell,
+			what_to_improve: whatToImprove,
+			key_learnings: keyLearnings,
+			memory_rebuild_passed: memoryRebuildPassed,
+			memory_rebuild_notes: memoryRebuildNotes
 		};
 
 		try {
@@ -424,6 +453,64 @@
 									{:else}
 										<p class="mt-2 text-sm text-yellow-400">Keep working...</p>
 									{/if}
+								</div>
+
+								<div class="mt-6 border-t border-gray-700 pt-4">
+									<h3 class="mb-3 text-lg font-semibold text-white">Memory Rebuild Challenge</h3>
+									<div class="mb-3 rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
+										<div class="flex items-center justify-between">
+											<div class="flex items-center gap-3">
+												<Icon icon="ph:brain-bold" width="24" class="text-purple-400" />
+												<div>
+													<p class="text-sm font-medium text-white">Timer: {memoryTimerDisplay}</p>
+													<p class="text-xs text-gray-400">Rebuild from memory without looking at notes</p>
+												</div>
+											</div>
+											{#if !memoryRebuildActive}
+												<Button onclick={startMemoryRebuildTimer} size="sm" icon="ph:play-bold">Start</Button>
+											{:else}
+												<Button onclick={stopMemoryRebuildTimer} size="sm" variant="outline" icon="ph:stop-bold">Stop</Button>
+											{/if}
+										</div>
+									</div>
+									<label class="flex items-center gap-2 text-sm text-gray-300">
+										<input type="checkbox" bind:checked={memoryRebuildPassed} class="rounded border-gray-600 bg-gray-800" />
+										Memory rebuild passed
+									</label>
+									<textarea
+										bind:value={memoryRebuildNotes}
+										placeholder="Memory rebuild notes..."
+										rows="2"
+										class="mt-2 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+									></textarea>
+								</div>
+
+								<div class="mt-6 border-t border-gray-700 pt-4">
+									<h3 class="mb-3 text-lg font-semibold text-white">Daily Reflection</h3>
+									<div class="space-y-3">
+										<div>
+											<label class="block text-sm font-medium text-gray-300">Daily Summary</label>
+											<textarea bind:value={dailySummary} rows="2" placeholder="What did you accomplish today?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-300">What Went Well</label>
+											<textarea bind:value={whatWentWell} rows="2" placeholder="Successes and wins..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-300">What to Improve</label>
+											<textarea bind:value={whatToImprove} rows="2" placeholder="Areas for improvement..." class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-300">Key Learnings</label>
+											<textarea bind:value={keyLearnings} rows="2" placeholder="What did you learn?" class="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"></textarea>
+										</div>
+									</div>
+								</div>
+
+								<div class="mt-6">
+									<Button onclick={handleSubmit} icon="ph:paper-plane-bold" class="w-full">
+										Submit Attempt
+									</Button>
 								</div>
 							</div>
 						</div>

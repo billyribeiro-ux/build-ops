@@ -1,19 +1,84 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Icon from '@iconify/svelte';
+	import { listPrograms, listDayPlans, listAttempts } from '$lib/commands';
+	import type { ProgramSummary, DayPlanSummary, DayAttemptSummary } from '$lib/types';
 
 	let exportType = $state<'pdf' | 'json' | 'csv'>('pdf');
 	let isExporting = $state(false);
+	let exportSuccess = $state('');
+	let programs = $state<ProgramSummary[]>([]);
+	let allDays = $state<DayPlanSummary[]>([]);
+	let allAttempts = $state<DayAttemptSummary[]>([]);
+
+	onMount(async () => {
+		try {
+			programs = await listPrograms();
+			const dayResults = await Promise.all(programs.map(p => listDayPlans(p.id).catch(() => [])));
+			allDays = dayResults.flat();
+			const attemptResults = await Promise.all(programs.map(p => listAttempts(p.id).catch(() => [])));
+			allAttempts = attemptResults.flat();
+		} catch (err) {
+			console.error('Failed to load export data:', err);
+		}
+	});
+
+	function downloadFile(content: string, filename: string, mimeType: string) {
+		const blob = new Blob([content], { type: mimeType });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
 
 	async function handleExport() {
 		isExporting = true;
+		exportSuccess = '';
 		try {
-			await new Promise(resolve => setTimeout(resolve, 1500));
-			alert(`${exportType.toUpperCase()} export functionality will be implemented`);
+			const timestamp = new Date().toISOString().slice(0, 10);
+			if (exportType === 'json') {
+				const data = { programs, dayPlans: allDays, attempts: allAttempts, exportedAt: new Date().toISOString() };
+				downloadFile(JSON.stringify(data, null, 2), `buildops-backup-${timestamp}.json`, 'application/json');
+				exportSuccess = 'JSON backup exported successfully!';
+			} else if (exportType === 'csv') {
+				const headers = ['Day Title', 'Day Number', 'Attempt #', 'Status', 'Score', 'Minutes', 'Date'];
+				const rows = allAttempts.map(a => [
+					a.day_title, a.day_number, a.attempt_number, a.status, a.total_score, a.actual_minutes, a.created_at
+				]);
+				const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+				downloadFile(csv, `buildops-attempts-${timestamp}.csv`, 'text/csv');
+				exportSuccess = 'CSV data exported successfully!';
+			} else {
+				const report = generateTextReport();
+				downloadFile(report, `buildops-report-${timestamp}.txt`, 'text/plain');
+				exportSuccess = 'Report exported successfully!';
+			}
+		} catch (err) {
+			exportSuccess = 'Export failed: ' + (err instanceof Error ? err.message : String(err));
 		} finally {
 			isExporting = false;
 		}
+	}
+
+	function generateTextReport(): string {
+		let report = '=== BuildOps 40 Program Report ===\n';
+		report += `Generated: ${new Date().toLocaleString()}\n\n`;
+		for (const p of programs) {
+			report += `--- ${p.title} ---\n`;
+			report += `Days: ${p.completed_days}/${p.days_count} completed\n`;
+			report += `Latest Score: ${p.latest_score}/100\n\n`;
+		}
+		if (allAttempts.length > 0) {
+			report += '=== Attempt History ===\n';
+			for (const a of allAttempts) {
+				report += `Day ${a.day_number}: ${a.day_title} - Attempt #${a.attempt_number} - Score: ${a.total_score}/100 - ${a.status}\n`;
+			}
+		}
+		return report;
 	}
 </script>
 
