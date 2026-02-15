@@ -26,7 +26,7 @@ pub async fn extract_document(file_path: &str) -> Result<ExtractedDocument, AppE
         "pdf" => extract_pdf(file_path, &file_name).await,
         "md" | "markdown" => extract_markdown(file_path, &file_name).await,
         "txt" => extract_text_file(file_path, &file_name).await,
-        _ => Err(AppError::ValidationError(format!(
+        _ => Err(AppError::Validation(format!(
             "Unsupported file type: {}",
             extension
         ))),

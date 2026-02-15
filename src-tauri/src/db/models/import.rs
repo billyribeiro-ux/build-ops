@@ -174,7 +174,7 @@ pub struct DependencyDraft {
     pub minimum_score: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ImportJobSummary {
     pub id: String,
     pub program_id: Option<String>,

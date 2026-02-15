@@ -22,6 +22,9 @@ pub enum AppError {
     
     #[error("Internal error: {0}")]
     Internal(String),
+    
+    #[error("External service error: {0}")]
+    ExternalServiceError(String),
 }
 
 impl From<AppError> for String {

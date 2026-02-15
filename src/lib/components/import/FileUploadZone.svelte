@@ -46,7 +46,7 @@
     isDragging = false;
     
     if (e.dataTransfer?.files) {
-      const paths = Array.from(e.dataTransfer.files).map(f => f.path);
+      const paths = Array.from(e.dataTransfer.files).map(f => f.name);
       selectedFiles = paths;
       onFilesSelected(paths);
     }
@@ -59,6 +59,8 @@
 </script>
 
 <div 
+  role="button"
+  tabindex="0"
   class="upload-zone"
   class:dragging={isDragging}
   ondragover={handleDragOver}

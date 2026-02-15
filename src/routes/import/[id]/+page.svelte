@@ -13,6 +13,7 @@
   
   async function loadJob() {
     try {
+      if (!jobId) return;
       job = await imports.getImportJob(jobId);
       
       if (job.status === 'review') {
@@ -43,6 +44,7 @@
     if (!confirm('Are you sure you want to cancel this import?')) return;
     
     try {
+      if (!jobId) return;
       await imports.cancelImport(jobId);
       goto('/import');
     } catch (e) {
@@ -55,6 +57,7 @@
     if (!apiKey) return;
     
     try {
+      if (!jobId) return;
       await imports.retryImport(jobId, apiKey);
       loadJob();
       pollInterval = setInterval(loadJob, 2000) as unknown as number;

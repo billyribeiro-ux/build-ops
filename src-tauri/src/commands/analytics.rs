@@ -1,5 +1,4 @@
 use crate::db::models::{TimeAnalytics, AccuracyPoint, FocusMetricsDaily};
-use crate::error::Result;
 use sqlx::SqlitePool;
 use tauri::State;
 use chrono::Utc;
@@ -7,7 +6,7 @@ use chrono::Utc;
 #[tauri::command]
 pub async fn get_time_analytics(
     pool: State<'_, SqlitePool>,
-) -> Result<TimeAnalytics> {
+) -> Result<TimeAnalytics, String> {
     let today = Utc::now().format("%Y-%m-%d").to_string();
     
     let today_metrics: Option<(i32, i32)> = sqlx::query_as(
@@ -17,7 +16,7 @@ pub async fn get_time_analytics(
     )
     .bind(&today)
     .fetch_optional(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let (today_planned, today_actual) = today_metrics.unwrap_or((0, 0));
     
@@ -27,7 +26,7 @@ pub async fn get_time_analytics(
          WHERE date >= DATE('now', '-7 days') AND user_id = 'default'"
     )
     .fetch_optional(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let capacity: (i32, i32) = sqlx::query_as(
         "SELECT default_daily_minutes, weekly_study_days 
@@ -35,7 +34,7 @@ pub async fn get_time_analytics(
          WHERE user_id = 'default' LIMIT 1"
     )
     .fetch_optional(pool.inner())
-    .await?
+    .await.map_err(|e| e.to_string())?
     .unwrap_or((180, 5));
     
     let week_target = capacity.0 * capacity.1;
@@ -47,7 +46,7 @@ pub async fn get_time_analytics(
          ORDER BY date ASC"
     )
     .fetch_all(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let accuracy_trend: Vec<AccuracyPoint> = accuracy_data
         .into_iter()
@@ -72,7 +71,7 @@ pub async fn get_time_analytics(
          WHERE date >= DATE('now', '-7 days') AND user_id = 'default'"
     )
     .fetch_optional(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let deep_days_used: i32 = sqlx::query_scalar(
         "SELECT COUNT(*) 
@@ -82,7 +81,7 @@ pub async fn get_time_analytics(
          AND user_id = 'default'"
     )
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(TimeAnalytics {
         today_planned,
@@ -100,7 +99,7 @@ pub async fn get_time_analytics(
 pub async fn update_daily_metrics(
     pool: State<'_, SqlitePool>,
     date: String,
-) -> Result<FocusMetricsDaily> {
+) -> Result<FocusMetricsDaily, String> {
     let sessions: Vec<(i32, i32)> = sqlx::query_as(
         "SELECT planned_minutes, actual_minutes 
          FROM day_sessions 
@@ -108,7 +107,7 @@ pub async fn update_daily_metrics(
     )
     .bind(&date)
     .fetch_all(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let total_planned: i32 = sessions.iter().map(|(p, _)| p).sum();
     let total_actual: i32 = sessions.iter().map(|(_, a)| a).sum();
@@ -134,7 +133,7 @@ pub async fn update_daily_metrics(
     )
     .bind(&date)
     .fetch_optional(pool.inner())
-    .await?
+    .await.map_err(|e| e.to_string())?
     .unwrap_or(0);
     
     let interruption_count: i32 = sqlx::query_scalar(
@@ -145,7 +144,7 @@ pub async fn update_daily_metrics(
     )
     .bind(&date)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let focus_efficiency = if total_actual > 0 {
         (deep_work_minutes as f64 / total_actual as f64) * 100.0
@@ -182,7 +181,7 @@ pub async fn update_daily_metrics(
     .bind(deep_work_minutes)
     .bind(interruption_count)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(metrics)
 }

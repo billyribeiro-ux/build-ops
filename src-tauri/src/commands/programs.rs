@@ -1,5 +1,4 @@
 use crate::db::models::{Program, CreateProgramInput, UpdateProgramInput};
-use crate::error::Result;
 use sqlx::SqlitePool;
 use tauri::State;
 use uuid::Uuid;
@@ -8,7 +7,7 @@ use uuid::Uuid;
 pub async fn create_program(
     pool: State<'_, SqlitePool>,
     input: CreateProgramInput,
-) -> Result<Program> {
+) -> Result<Program, String> {
     let id = Uuid::new_v4().to_string();
     
     let program = sqlx::query_as::<_, Program>(
@@ -21,7 +20,8 @@ pub async fn create_program(
     .bind(&input.description)
     .bind(input.target_days)
     .fetch_one(pool.inner())
-    .await?;
+    .await
+    .map_err(|e| e.to_string())?;
     
     Ok(program)
 }
@@ -30,14 +30,15 @@ pub async fn create_program(
 pub async fn get_program(
     pool: State<'_, SqlitePool>,
     id: String,
-) -> Result<Program> {
+) -> Result<Program, String> {
     let program = sqlx::query_as::<_, Program>(
         "SELECT * FROM programs WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound(format!("Program {} not found", id)))?;
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("Program {} not found", id))?;
     
     Ok(program)
 }
@@ -45,12 +46,13 @@ pub async fn get_program(
 #[tauri::command]
 pub async fn list_programs(
     pool: State<'_, SqlitePool>,
-) -> Result<Vec<Program>> {
+) -> Result<Vec<Program>, String> {
     let programs = sqlx::query_as::<_, Program>(
         "SELECT * FROM programs ORDER BY created_at DESC"
     )
     .fetch_all(pool.inner())
-    .await?;
+    .await
+    .map_err(|e| e.to_string())?;
     
     Ok(programs)
 }
@@ -60,7 +62,7 @@ pub async fn update_program(
     pool: State<'_, SqlitePool>,
     id: String,
     input: UpdateProgramInput,
-) -> Result<Program> {
+) -> Result<Program, String> {
     let mut query = String::from("UPDATE programs SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')");
     let mut params: Vec<String> = Vec::new();
     
@@ -85,8 +87,9 @@ pub async fn update_program(
         q = q.bind(param);
     }
     
-    let program = q.fetch_optional(pool.inner()).await?
-        .ok_or_else(|| crate::error::AppError::NotFound(format!("Program {} not found", id)))?;
+    let program = q.fetch_optional(pool.inner()).await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Program {} not found", id))?;
     
     Ok(program)
 }
@@ -95,11 +98,12 @@ pub async fn update_program(
 pub async fn delete_program(
     pool: State<'_, SqlitePool>,
     id: String,
-) -> Result<()> {
+) -> Result<(), String> {
     sqlx::query("DELETE FROM programs WHERE id = ?")
         .bind(&id)
         .execute(pool.inner())
-        .await?;
+        .await
+        .map_err(|e| e.to_string())?;
     
     Ok(())
 }

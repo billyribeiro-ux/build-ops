@@ -1,5 +1,4 @@
 use crate::db::models::{DayAttempt, UpdateAttemptInput};
-use crate::error::Result;
 use sqlx::SqlitePool;
 use tauri::State;
 use uuid::Uuid;
@@ -8,7 +7,7 @@ use uuid::Uuid;
 pub async fn start_attempt(
     pool: State<'_, SqlitePool>,
     day_plan_id: String,
-) -> Result<DayAttempt> {
+) -> Result<DayAttempt, String> {
     let id = Uuid::new_v4().to_string();
     
     let next_attempt_number: i32 = sqlx::query_scalar(
@@ -16,14 +15,14 @@ pub async fn start_attempt(
     )
     .bind(&day_plan_id)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let day_plan_version: i32 = sqlx::query_scalar(
         "SELECT version FROM day_plans WHERE id = ?"
     )
     .bind(&day_plan_id)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let attempt = sqlx::query_as::<_, DayAttempt>(
         "INSERT INTO day_attempts (id, day_plan_id, day_plan_version, attempt_number) 
@@ -35,7 +34,7 @@ pub async fn start_attempt(
     .bind(day_plan_version)
     .bind(next_attempt_number)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(attempt)
 }
@@ -44,14 +43,14 @@ pub async fn start_attempt(
 pub async fn get_attempt(
     pool: State<'_, SqlitePool>,
     id: String,
-) -> Result<DayAttempt> {
+) -> Result<DayAttempt, String> {
     let attempt = sqlx::query_as::<_, DayAttempt>(
         "SELECT * FROM day_attempts WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound(format!("Attempt {} not found", id)))?;
+    .await.map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("Attempt {} not found", id))?;
     
     Ok(attempt)
 }
@@ -61,7 +60,7 @@ pub async fn update_attempt(
     pool: State<'_, SqlitePool>,
     id: String,
     input: UpdateAttemptInput,
-) -> Result<DayAttempt> {
+) -> Result<DayAttempt, String> {
     let mut query = String::from("UPDATE day_attempts SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')");
     let mut params: Vec<Box<dyn sqlx::Encode<'_, sqlx::Sqlite> + Send>> = Vec::new();
     
@@ -96,8 +95,8 @@ pub async fn update_attempt(
     let attempt = sqlx::query_as::<_, DayAttempt>(&query)
         .bind(&id)
         .fetch_optional(pool.inner())
-        .await?
-        .ok_or_else(|| crate::error::AppError::NotFound(format!("Attempt {} not found", id)))?;
+        .await.map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Attempt {} not found", id))?;
     
     Ok(attempt)
 }
@@ -106,13 +105,13 @@ pub async fn update_attempt(
 pub async fn list_attempts(
     pool: State<'_, SqlitePool>,
     day_plan_id: String,
-) -> Result<Vec<DayAttempt>> {
+) -> Result<Vec<DayAttempt>, String> {
     let attempts = sqlx::query_as::<_, DayAttempt>(
         "SELECT * FROM day_attempts WHERE day_plan_id = ? ORDER BY attempt_number DESC"
     )
     .bind(&day_plan_id)
     .fetch_all(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(attempts)
 }

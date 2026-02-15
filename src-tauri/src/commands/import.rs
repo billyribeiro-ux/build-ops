@@ -3,7 +3,7 @@ use crate::error::AppError;
 use crate::services::{
     ai_analyzer::{analyze_with_ai, AiConfig},
     document_chunker::{chunk_document, merge_multi_file_content},
-    import_applier::apply_import,
+    import_applier,
     pdf_extractor::extract_document,
     plan_generator::generate_plan,
 };
@@ -82,11 +82,12 @@ pub async fn start_import(
 
     let pool_clone = pool.inner().clone();
     let api_key_clone = api_key.clone();
+    let job_id_clone = job_id.clone();
 
     tokio::spawn(async move {
-        if let Err(e) = run_import_pipeline(&pool_clone, &job_id, source_files, api_key_clone).await
+        if let Err(e) = run_import_pipeline(&pool_clone, &job_id_clone, source_files, api_key_clone).await
         {
-            let _ = fail_job(&pool_clone, &job_id, "pipeline", &e.to_string()).await;
+            let _ = fail_job(&pool_clone, &job_id_clone, "pipeline", &e.to_string()).await;
         }
     });
 
@@ -281,7 +282,7 @@ pub async fn apply_import(
         .await
         .map_err(|e| format!("Failed to update job status: {}", e))?;
 
-    let program = apply_import(pool.inner(), &plan, job.program_id)
+    let program = import_applier::apply_import(pool.inner(), &plan, job.program_id)
         .await
         .map_err(|e| format!("Failed to apply import: {}", e))?;
 
@@ -371,9 +372,10 @@ pub async fn retry_import(
     .map_err(|e| format!("Failed to reset job: {}", e))?;
 
     let pool_clone = pool.inner().clone();
+    let job_id_clone = job_id.clone();
     tokio::spawn(async move {
-        if let Err(e) = run_import_pipeline(&pool_clone, &job_id, source_files, api_key).await {
-            let _ = fail_job(&pool_clone, &job_id, "pipeline", &e.to_string()).await;
+        if let Err(e) = run_import_pipeline(&pool_clone, &job_id_clone, source_files, api_key).await {
+            let _ = fail_job(&pool_clone, &job_id_clone, "pipeline", &e.to_string()).await;
         }
     });
 

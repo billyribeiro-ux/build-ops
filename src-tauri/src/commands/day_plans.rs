@@ -1,5 +1,4 @@
 use crate::db::models::{DayPlan, CreateDayPlanInput, FocusBlock};
-use crate::error::Result;
 use sqlx::SqlitePool;
 use tauri::State;
 use uuid::Uuid;
@@ -8,7 +7,7 @@ use uuid::Uuid;
 pub async fn create_day_plan(
     pool: State<'_, SqlitePool>,
     input: CreateDayPlanInput,
-) -> Result<DayPlan> {
+) -> Result<DayPlan, String> {
     let id = Uuid::new_v4().to_string();
     
     let min_minutes = input.min_minutes.unwrap_or(90);
@@ -17,7 +16,8 @@ pub async fn create_day_plan(
     let complexity_level = input.complexity_level.unwrap_or(3);
     
     let focus_blocks = generate_default_focus_blocks(complexity_level);
-    let focus_blocks_json = serde_json::to_string(&focus_blocks)?;
+    let focus_blocks_json = serde_json::to_string(&focus_blocks)
+        .map_err(|e| e.to_string())?;
     
     let day_plan = sqlx::query_as::<_, DayPlan>(
         "INSERT INTO day_plans (
@@ -40,7 +40,7 @@ pub async fn create_day_plan(
     .bind(complexity_level)
     .bind(&focus_blocks_json)
     .fetch_one(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(day_plan)
 }
@@ -49,14 +49,14 @@ pub async fn create_day_plan(
 pub async fn get_day_plan(
     pool: State<'_, SqlitePool>,
     id: String,
-) -> Result<DayPlan> {
+) -> Result<DayPlan, String> {
     let day_plan = sqlx::query_as::<_, DayPlan>(
         "SELECT * FROM day_plans WHERE id = ?"
     )
     .bind(&id)
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound(format!("Day plan {} not found", id)))?;
+    .await.map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("Day plan {} not found", id))?;
     
     Ok(day_plan)
 }
@@ -65,13 +65,13 @@ pub async fn get_day_plan(
 pub async fn list_day_plans(
     pool: State<'_, SqlitePool>,
     program_id: String,
-) -> Result<Vec<DayPlan>> {
+) -> Result<Vec<DayPlan>, String> {
     let day_plans = sqlx::query_as::<_, DayPlan>(
         "SELECT * FROM day_plans WHERE program_id = ? ORDER BY day_number ASC"
     )
     .bind(&program_id)
     .fetch_all(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     Ok(day_plans)
 }

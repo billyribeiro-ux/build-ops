@@ -8,8 +8,12 @@
   
   let { plan, onSave }: Props = $props();
   
-  let editedPlan = $state<ImportGeneratedPlan>(JSON.parse(JSON.stringify(plan)));
+  let editedPlan = $state<ImportGeneratedPlan>({} as ImportGeneratedPlan);
   let selectedTab = $state<'overview' | 'modules' | 'days' | 'warnings'>('overview');
+  
+  $effect(() => {
+    editedPlan = JSON.parse(JSON.stringify(plan));
+  });
   let expandedModules = $state<Set<number>>(new Set([0]));
   
   function toggleModule(index: number) {
@@ -124,7 +128,12 @@
         <h2>Modules</h2>
         {#each editedPlan.modules as module, i}
           <div class="module-card">
-            <div class="module-header" onclick={() => toggleModule(i)}>
+            <button 
+              type="button"
+              class="module-header" 
+              onclick={() => toggleModule(i)}
+              onkeydown={(e) => e.key === 'Enter' && toggleModule(i)}
+            >
               <div class="module-info">
                 <div class="module-color" style="background: {module.color}"></div>
                 <h3>{module.title}</h3>
@@ -132,19 +141,19 @@
                   {daysByModule()[i]?.length || 0} days
                 </span>
               </div>
-              <button class="expand-btn">
+              <span class="expand-btn" aria-hidden="true">
                 {expandedModules.has(i) ? '−' : '+'}
-              </button>
-            </div>
+              </span>
+            </button>
             {#if expandedModules.has(i)}
               <div class="module-body">
                 <div class="form-group">
-                  <label>Title</label>
-                  <input type="text" bind:value={module.title} />
+                  <label for="module-title-{i}">Title</label>
+                  <input id="module-title-{i}" type="text" bind:value={module.title} />
                 </div>
                 <div class="form-group">
-                  <label>Description</label>
-                  <textarea bind:value={module.description} rows="3"></textarea>
+                  <label for="module-desc-{i}">Description</label>
+                  <textarea id="module-desc-{i}" bind:value={module.description} rows="3"></textarea>
                 </div>
               </div>
             {/if}
@@ -310,6 +319,10 @@
     align-items: center;
     padding: 1.5rem;
     cursor: pointer;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
   }
   
   .module-info {

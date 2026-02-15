@@ -54,17 +54,11 @@
 				{/if}
 			</p>
 		</div>
-		<div
-			class="rounded-full px-3 py-1 text-xs font-medium"
-			class:bg-blue-500/20={session.status === 'planned'}
-			class:text-blue-400={session.status === 'planned'}
-			class:bg-green-500/20={session.status === 'in_progress'}
-			class:text-green-400={session.status === 'in_progress'}
-			class:bg-gray-500/20={session.status === 'done'}
-			class:text-gray-400={session.status === 'done'}
+		<span
+			class="rounded-full px-3 py-1 text-xs font-medium {session.status === 'planned' ? 'bg-blue-500/20 text-blue-400' : session.status === 'in_progress' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}"
 		>
 			{session.status}
-		</div>
+		</span>
 	</div>
 
 	{#if isActive}

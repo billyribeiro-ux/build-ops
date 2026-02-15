@@ -1,18 +1,17 @@
 use crate::db::models::{UserCapacityProfile, UpdateCapacityInput};
-use crate::error::Result;
 use sqlx::SqlitePool;
 use tauri::State;
 
 #[tauri::command]
 pub async fn get_capacity_profile(
     pool: State<'_, SqlitePool>,
-) -> Result<UserCapacityProfile> {
+) -> Result<UserCapacityProfile, String> {
     let profile = sqlx::query_as::<_, UserCapacityProfile>(
         "SELECT * FROM user_capacity_profiles WHERE user_id = 'default' LIMIT 1"
     )
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound("Capacity profile not found".to_string()))?;
+    .await.map_err(|e| e.to_string())?
+    .ok_or_else(|| "Capacity profile not found".to_string())?;
     
     Ok(profile)
 }
@@ -21,7 +20,7 @@ pub async fn get_capacity_profile(
 pub async fn update_capacity_profile(
     pool: State<'_, SqlitePool>,
     input: UpdateCapacityInput,
-) -> Result<UserCapacityProfile> {
+) -> Result<UserCapacityProfile, String> {
     let mut query = String::from("UPDATE user_capacity_profiles SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')");
     
     if input.default_daily_minutes.is_some() {
@@ -66,8 +65,8 @@ pub async fn update_capacity_profile(
         q = q.bind(val);
     }
     
-    let profile = q.fetch_optional(pool.inner()).await?
-        .ok_or_else(|| crate::error::AppError::NotFound("Capacity profile not found".to_string()))?;
+    let profile = q.fetch_optional(pool.inner()).await.map_err(|e| e.to_string())?
+        .ok_or_else(|| "Capacity profile not found".to_string())?;
     
     Ok(profile)
 }

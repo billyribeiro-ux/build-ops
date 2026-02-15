@@ -165,8 +165,8 @@ fn chunk_multi_pass(
         });
     }
 
+    let total = chunks.len();
     for chunk in &mut chunks {
-        let total = chunks.len();
         chunk.content = chunk.content.replace("TBD", &total.to_string());
     }
 

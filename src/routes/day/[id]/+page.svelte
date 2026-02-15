@@ -25,6 +25,10 @@
 		isLoading = true;
 		error = null;
 		try {
+			if (!dayId) {
+				throw new Error('Day ID is required');
+			}
+			
 			dayPlan = await dayPlanCommands.get(dayId);
 			
 			const attempts = await attemptCommands.list(dayId);

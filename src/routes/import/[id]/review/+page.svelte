@@ -13,6 +13,10 @@
   
   onMount(async () => {
     try {
+      if (!jobId) {
+        error = 'Job ID is required';
+        return;
+      }
       plan = await imports.getImportPreview(jobId);
     } catch (e) {
       error = `Failed to load import preview: ${e}`;
@@ -21,6 +25,7 @@
   
   async function handleSave(updatedPlan: ImportGeneratedPlan) {
     try {
+      if (!jobId) return;
       const planJson = JSON.stringify(updatedPlan);
       await imports.updateImportPreview(jobId, planJson);
       alert('Changes saved successfully!');
@@ -36,6 +41,7 @@
     
     isApplying = true;
     try {
+      if (!jobId) return;
       const program = await imports.applyImport(jobId);
       goto(`/programs/${program.id}`);
     } catch (e) {

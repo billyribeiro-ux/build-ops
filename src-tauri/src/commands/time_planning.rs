@@ -1,5 +1,5 @@
-use crate::db::models::{DayPlan, UserCapacityProfile, DaySession, GeneratedPlan, PlannedSession, FocusBlock, CreateSessionInput};
-use crate::error::Result;
+use crate::db::models::{DayPlan, UserCapacityProfile, DaySession, PlannedSession, FocusBlock, CreateSessionInput};
+use crate::db::models::session::GeneratedPlan;
 use sqlx::SqlitePool;
 use tauri::State;
 use chrono::{DateTime, Utc, Duration, NaiveTime};
@@ -9,21 +9,21 @@ pub async fn plan_my_day(
     pool: State<'_, SqlitePool>,
     day_plan_id: String,
     day_attempt_id: String,
-) -> Result<GeneratedPlan> {
+) -> Result<GeneratedPlan, String> {
     let day_plan: DayPlan = sqlx::query_as(
         "SELECT * FROM day_plans WHERE id = ?"
     )
     .bind(&day_plan_id)
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound("Day plan not found".to_string()))?;
+    .await.map_err(|e| e.to_string())?
+    .ok_or_else(|| "Day plan not found".to_string())?;
     
     let capacity: UserCapacityProfile = sqlx::query_as(
         "SELECT * FROM user_capacity_profiles WHERE user_id = 'default' LIMIT 1"
     )
     .fetch_optional(pool.inner())
-    .await?
-    .ok_or_else(|| crate::error::AppError::NotFound("Capacity profile not found".to_string()))?;
+    .await.map_err(|e| e.to_string())?
+    .ok_or_else(|| "Capacity profile not found".to_string())?;
     
     let historical_data: Vec<(String, i32, i32)> = sqlx::query_as(
         "SELECT ds.session_type, ds.planned_minutes, ds.actual_minutes 
@@ -36,7 +36,7 @@ pub async fn plan_my_day(
     )
     .bind(day_plan.complexity_level)
     .fetch_all(pool.inner())
-    .await?;
+    .await.map_err(|e| e.to_string())?;
     
     let focus_blocks: Vec<FocusBlock> = serde_json::from_str(&day_plan.focus_blocks)
         .unwrap_or_else(|_| vec![]);
@@ -77,7 +77,7 @@ pub async fn plan_my_day(
             planned_minutes: session.planned_minutes,
         };
         
-        crate::commands::sessions::create_session(pool.clone(), input).await?;
+        crate::commands::sessions::create_session(pool.clone(), input).await.map_err(|e| e.to_string())?;
     }
     
     Ok(GeneratedPlan {

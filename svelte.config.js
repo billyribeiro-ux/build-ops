@@ -8,7 +8,7 @@ const config = {
 			fallback: 'index.html'
 		}),
 		paths: {
-			base: process.env.TAURI_PUBLIC_URL || '/',
+			base: process.env.TAURI_PUBLIC_URL || '',
 		},
 	},
 	preprocess: [mdsvex()],
