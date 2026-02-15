@@ -32,6 +32,27 @@
 		} catch {
 			console.log('No capacity profile found, using defaults');
 		}
+		
+		// Load theme from localStorage
+		const savedTheme = localStorage.getItem('theme') || 'dark';
+		theme = savedTheme;
+		applyTheme(savedTheme);
+	});
+	
+	function applyTheme(newTheme: string) {
+		if (typeof document !== 'undefined') {
+			const root = document.documentElement;
+			if (newTheme === 'light') {
+				root.classList.add('light');
+			} else {
+				root.classList.remove('light');
+			}
+			localStorage.setItem('theme', newTheme);
+		}
+	}
+	
+	$effect(() => {
+		applyTheme(theme);
 	});
 
 	async function saveCapacity() {
