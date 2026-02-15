@@ -1,5 +1,4 @@
 {
-  "$schema": "https://tauri.app/schema/capability.json",
   "identifier": "default",
   "description": "Default permissions for BuildOps 40",
   "windows": [
