@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { imports } from '$lib/commands';
+  import { listImportJobs, startImport } from '$lib/commands';
   import FileUploadZone from '$lib/components/import/FileUploadZone.svelte';
   import type { ImportJobSummary } from '$lib/types';
   import { onMount } from 'svelte';
@@ -13,7 +13,7 @@
   
   onMount(async () => {
     try {
-      recentJobs = await imports.listImportJobs();
+      recentJobs = await listImportJobs();
     } catch (e) {
       console.error('Failed to load recent jobs:', e);
     }
@@ -32,7 +32,7 @@
     
     isSubmitting = true;
     try {
-      const job = await imports.startImport(selectedFiles, null, apiKey);
+      const job = await startImport(selectedFiles, null, apiKey);
       goto(`/import/${job.id}`);
     } catch (e) {
       alert(`Failed to start import: ${e}`);

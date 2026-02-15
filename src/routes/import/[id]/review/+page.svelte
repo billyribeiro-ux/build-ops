@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { imports } from '$lib/commands';
+  import { getImportPreview, updateImportPreview, applyImport } from '$lib/commands';
   import ImportReviewInterface from '$lib/components/import/ImportReviewInterface.svelte';
   import type { ImportGeneratedPlan } from '$lib/types';
   import { onMount } from 'svelte';
@@ -17,7 +17,7 @@
         error = 'Job ID is required';
         return;
       }
-      plan = await imports.getImportPreview(jobId);
+      plan = await getImportPreview(jobId);
     } catch (e) {
       error = `Failed to load import preview: ${e}`;
     }
@@ -27,7 +27,7 @@
     try {
       if (!jobId) return;
       const planJson = JSON.stringify(updatedPlan);
-      await imports.updateImportPreview(jobId, planJson);
+      await updateImportPreview(jobId, planJson);
       alert('Changes saved successfully!');
     } catch (e) {
       alert(`Failed to save changes: ${e}`);
@@ -42,7 +42,7 @@
     isApplying = true;
     try {
       if (!jobId) return;
-      const program = await imports.applyImport(jobId);
+      const program = await applyImport(jobId);
       goto(`/programs/${program.id}`);
     } catch (e) {
       alert(`Failed to apply import: ${e}`);

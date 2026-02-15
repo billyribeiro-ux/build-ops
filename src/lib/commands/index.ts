@@ -10,3 +10,10 @@ export * from './attempts';
 
 // Phase 4: Intelligence Layer
 export * from './intelligence';
+
+// Capacity & Sessions
+export * from './capacity';
+export * from './sessions';
+
+// Import
+export * from './import';

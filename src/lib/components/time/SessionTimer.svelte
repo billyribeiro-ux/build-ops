@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { timerStore } from '$lib/stores/timer.svelte';
-	import { sessionCommands } from '$lib/commands';
+	import { createSession, startSession, pauseSession, completeSession } from '$lib/commands';
 	import Icon from '@iconify/svelte';
 	import type { DaySession } from '$lib/types';
 
@@ -13,7 +13,7 @@
 
 	async function handleStart() {
 		try {
-			const updated = await sessionCommands.start(session.id);
+			const updated = await startSession(session.id);
 			timerStore.start(updated);
 		} catch (error) {
 			console.error('Failed to start session:', error);
@@ -22,7 +22,7 @@
 
 	async function handlePause() {
 		try {
-			await sessionCommands.pause(session.id);
+			const updated = await pauseSession(session.id);
 			timerStore.pause();
 		} catch (error) {
 			console.error('Failed to pause session:', error);
@@ -35,7 +35,7 @@
 
 	async function handleComplete() {
 		try {
-			await sessionCommands.complete(session.id);
+			const updated = await completeSession(session.id);
 			timerStore.stop();
 		} catch (error) {
 			console.error('Failed to complete session:', error);

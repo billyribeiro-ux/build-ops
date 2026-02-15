@@ -136,6 +136,24 @@ pub fn run() {
             crate::commands::check_and_award_badges,
             crate::commands::get_skill_radar,
             crate::commands::update_skill_scores,
+            // Capacity & Time Planning (2 commands)
+            crate::commands::get_capacity_profile,
+            crate::commands::update_capacity_profile,
+            // Session Management (5 commands)
+            crate::commands::create_session,
+            crate::commands::start_session,
+            crate::commands::pause_session,
+            crate::commands::complete_session,
+            crate::commands::list_sessions,
+            // Import Pipeline (8 commands)
+            crate::commands::start_import,
+            crate::commands::get_import_job,
+            crate::commands::get_import_preview,
+            crate::commands::update_import_preview,
+            crate::commands::apply_import,
+            crate::commands::cancel_import,
+            crate::commands::list_import_jobs,
+            crate::commands::delete_import_job,
         ])
         .run(tauri::generate_context!())
         .expect("Error running BuildOps 40");

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { recommendationCommands } from '$lib/commands';
+	// TODO: Add recommendation and analytics commands when implemented
+	// import { getRecommendations, getAnalytics } from '$lib/commands';
 	import Icon from '@iconify/svelte';
 	import type { TimeRecommendation } from '$lib/types';
 	import { onMount } from 'svelte';
@@ -13,7 +14,9 @@
 
 	async function loadRecommendations() {
 		try {
-			recommendations = await recommendationCommands.list();
+			// TODO: Implement when recommendation commands are available
+			// recommendations = await getRecommendations();
+			recommendations = [];
 		} catch (error) {
 			console.error('Failed to load recommendations:', error);
 		} finally {
@@ -23,7 +26,8 @@
 
 	async function handleApply(id: string) {
 		try {
-			await recommendationCommands.apply(id);
+			// TODO: Implement when recommendation commands are available
+			// await applyRecommendation(id);
 			await loadRecommendations();
 		} catch (error) {
 			console.error('Failed to apply recommendation:', error);
@@ -32,7 +36,8 @@
 
 	async function handleDismiss(id: string) {
 		try {
-			await recommendationCommands.dismiss(id);
+			// TODO: Implement when recommendation commands are available
+			// await dismissRecommendation(id);
 			await loadRecommendations();
 		} catch (error) {
 			console.error('Failed to dismiss recommendation:', error);

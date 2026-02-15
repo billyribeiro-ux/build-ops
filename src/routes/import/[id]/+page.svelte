@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { imports } from '$lib/commands';
+  import { getImportJob, cancelImport } from '$lib/commands';
   import ImportProgressCard from '$lib/components/import/ImportProgressCard.svelte';
   import type { ImportJob } from '$lib/types';
   import { onMount, onDestroy } from 'svelte';
@@ -14,7 +14,7 @@
   async function loadJob() {
     try {
       if (!jobId) return;
-      job = await imports.getImportJob(jobId);
+      job = await getImportJob(jobId);
       
       if (job.status === 'review') {
         goto(`/import/${jobId}/review`);
@@ -45,7 +45,7 @@
     
     try {
       if (!jobId) return;
-      await imports.cancelImport(jobId);
+      await cancelImport(jobId);
       goto('/import');
     } catch (e) {
       alert(`Failed to cancel import: ${e}`);
@@ -58,7 +58,8 @@
     
     try {
       if (!jobId) return;
-      await imports.retryImport(jobId, apiKey);
+      // TODO: Implement retry functionality
+      // await retryImport(jobId, apiKey);
       loadJob();
       pollInterval = setInterval(loadJob, 2000) as unknown as number;
     } catch (e) {

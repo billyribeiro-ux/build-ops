@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { analyticsCommands } from '$lib/commands';
+	// TODO: Add analytics commands when implemented
+// import { getTimeAnalytics } from '$lib/commands';
 	import Icon from '@iconify/svelte';
 	import type { TimeAnalytics } from '$lib/types';
 	import { onMount } from 'svelte';
@@ -9,7 +10,9 @@
 
 	onMount(async () => {
 		try {
-			analytics = await analyticsCommands.getTimeAnalytics();
+			// TODO: Implement when analytics commands are available
+			// analytics = await getTimeAnalytics();
+			analytics = null;
 		} catch (error) {
 			console.error('Failed to load analytics:', error);
 		} finally {

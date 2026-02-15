@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { dayPlanCommands, attemptCommands, sessionCommands } from '$lib/commands';
+	import { getDayPlan, startAttempt, getCurrentAttempt, listSessions } from '$lib/commands';
 	import TimePlanCard from '$lib/components/time/TimePlanCard.svelte';
 	import SessionBlockList from '$lib/components/time/SessionBlockList.svelte';
 	import PlanGeneratorModal from '$lib/components/time/PlanGeneratorModal.svelte';
@@ -29,17 +29,16 @@
 				throw new Error('Day ID is required');
 			}
 			
-			dayPlan = await dayPlanCommands.get(dayId);
-			
-			const attempts = await attemptCommands.list(dayId);
-			currentAttempt = attempts.find(a => a.status === 'in_progress') || null;
+			const fullPlan = await getDayPlan(dayId);
+			dayPlan = fullPlan as any; // DayPlanFull extends DayPlan
+			currentAttempt = await getCurrentAttempt(dayId);
 			
 			if (!currentAttempt) {
-				currentAttempt = await attemptCommands.start(dayId);
+				currentAttempt = await startAttempt({ day_plan_id: dayId });
 			}
 			
 			if (currentAttempt) {
-				sessions = await sessionCommands.list(currentAttempt.id);
+				sessions = await listSessions(currentAttempt.id);
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load day data';

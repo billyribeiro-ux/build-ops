@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { timePlanningCommands } from '$lib/commands';
+	// TODO: Add time planning commands when implemented
+// import { generateTimePlan } from '$lib/commands';
 	import Icon from '@iconify/svelte';
 	import type { GeneratedPlan } from '$lib/types';
 
@@ -19,14 +20,16 @@
 	let generatedPlan = $state<GeneratedPlan | null>(null);
 	let error = $state<string | null>(null);
 
-	async function generatePlan() {
+	async function handleGenerate() {
 		isGenerating = true;
 		error = null;
 		try {
-			const plan = await timePlanningCommands.planMyDay(dayPlanId, dayAttemptId);
-			generatedPlan = plan;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to generate plan';
+			// TODO: Implement when time planning commands are available
+			// generatedPlan = await generateTimePlan(dayPlanId, dayAttemptId);
+			// onPlanGenerated(generatedPlan);
+			isOpen = false;
+		} catch (e) {
+			error = `Failed to generate plan: ${e}`;
 		} finally {
 			isGenerating = false;
 		}
@@ -77,7 +80,7 @@
 							complexity, and your historical performance.
 						</p>
 						<button
-							onclick={generatePlan}
+							onclick={handleGenerate}
 							disabled={isGenerating}
 							class="mt-6 flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
 						>
@@ -95,7 +98,7 @@
 						<Icon icon="ph:warning-bold" width="48" class="mx-auto text-red-500" />
 						<p class="mt-2 text-red-400">{error}</p>
 						<button
-							onclick={generatePlan}
+							onclick={handleGenerate}
 							class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
 						>
 							Try Again
