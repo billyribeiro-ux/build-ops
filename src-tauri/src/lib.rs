@@ -125,6 +125,17 @@ pub fn run() {
             crate::commands::update_bug_log,
             crate::commands::list_bug_logs,
             crate::commands::delete_bug_log,
+            // Phase 4: Intelligence Layer (10 commands)
+            crate::commands::get_due_reviews,
+            crate::commands::record_review,
+            crate::commands::get_forgetting_curve_alerts,
+            crate::commands::get_streak,
+            crate::commands::update_streak,
+            crate::commands::use_streak_freeze,
+            crate::commands::get_badges,
+            crate::commands::check_and_award_badges,
+            crate::commands::get_skill_radar,
+            crate::commands::update_skill_scores,
         ])
         .run(tauri::generate_context!())
         .expect("Error running BuildOps 40");

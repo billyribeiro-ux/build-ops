@@ -99,7 +99,7 @@ pub async fn list_attempts(
     .bind(&day_plan_id)
     .fetch_all(pool.inner())
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e: sqlx::Error| e.to_string())?;
     
     Ok(summaries)
 }
@@ -320,7 +320,7 @@ pub async fn list_exercise_entries(
     .bind(&day_attempt_id)
     .fetch_all(pool.inner())
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e: sqlx::Error| e.to_string())?;
     
     Ok(entries)
 }
@@ -407,7 +407,7 @@ pub async fn list_artifacts(
     .bind(&day_attempt_id)
     .fetch_all(pool.inner())
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e: sqlx::Error| e.to_string())?;
     
     Ok(artifacts)
 }
@@ -510,7 +510,7 @@ pub async fn list_bug_logs(
     .bind(&day_attempt_id)
     .fetch_all(pool.inner())
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e: sqlx::Error| e.to_string())?;
     
     Ok(bug_logs)
 }
